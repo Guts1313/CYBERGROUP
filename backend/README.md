@@ -64,13 +64,15 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8081/api/private/dev
 ## Test
 
 ```
-mvn test
+mvn test       # fast — unit + slice tests only
+mvn verify     # full — also spins up real Keycloak via Testcontainers
 ```
 
+`mvn verify` requires a running Docker daemon (Testcontainers spawns the Keycloak container). On Windows, Docker Desktop must be running.
+
 Tests cover:
-- `KeycloakRealmRoleConverter` unit tests (claim extraction edge cases)
-- Per-endpoint authorization (admin, it, hr, dev) — positive + negative for each role
-- Anonymous access denied where expected; allowed on `/api/public`
+- **Unit / slice** — `KeycloakRealmRoleConverter` (claim extraction edge cases), per-endpoint authorization (admin/it/hr/dev) using `spring-security-test`'s mock JWT post-processor (positive + negative per role), anonymous → 401, public → 200.
+- **Integration (E4 #59)** — `RbacIntegrationTest` extends `KeycloakIntegrationTestBase`, which spins a real Keycloak 26 container via Testcontainers (singleton across the JVM), imports a test variant of the realm (`src/test/resources/cybergroup-realm-test.json` — DAG enabled, no MFA), and exercises every cell of the W5 access matrix through real JWTs. Plus garbage-token and tampered-signature tests.
 
 ## Build
 
@@ -98,4 +100,4 @@ java -jar target/iam-backend-0.1.0-SNAPSHOT.jar
 | W5 #27 | Role/access matrix doc + 5 demo accounts | E |
 | B1 #60 | Service-account / M2M client | unassigned |
 | B2 #61 | Audit logging in JSON → Loki | unassigned |
-| E4 #59 | Testcontainers Keycloak integration tests | unassigned |
+| E4 #59 | Testcontainers Keycloak integration tests | E ✓ |

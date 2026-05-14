@@ -1,0 +1,124 @@
+{
+  "realm": "cybergroup",
+  "displayName": "CYBERGROUP (test)",
+  "enabled": true,
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "rememberMe": false,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+
+  "bruteForceProtected": false,
+
+  "eventsEnabled": false,
+  "adminEventsEnabled": false,
+
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "refreshTokenMaxReuse": 0,
+  "revokeRefreshToken": true,
+
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA256",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+
+  "roles": {
+    "realm": [
+      { "name": "admin",       "description": "Full administrative access" },
+      { "name": "it_manager",  "description": "IT operations and infrastructure management" },
+      { "name": "hr_manager",  "description": "HR systems access" },
+      { "name": "developer",   "description": "Developer access to repos and internal APIs" },
+      { "name": "normal",      "description": "Standard worker access" }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "iam-backend",
+      "name": "IAM Backend (resource server, bearer-only)",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "iam-frontend",
+      "name": "IAM Frontend SPA (test - DAG enabled)",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocol": "openid-connect"
+    }
+  ],
+
+  "users": [
+    {
+      "username": "admin-demo",
+      "firstName": "Admin",
+      "lastName": "Demo",
+      "email": "admin-demo@cybergroup.local",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "AdminDemo123!Init", "temporary": false }],
+      "realmRoles": ["admin"]
+    },
+    {
+      "username": "itmgr-demo",
+      "firstName": "IT Manager",
+      "lastName": "Demo",
+      "email": "itmgr-demo@cybergroup.local",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "ITMgrDemo123!Init", "temporary": false }],
+      "realmRoles": ["it_manager"]
+    },
+    {
+      "username": "hrmgr-demo",
+      "firstName": "HR Manager",
+      "lastName": "Demo",
+      "email": "hrmgr-demo@cybergroup.local",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "HRMgrDemo123!Init", "temporary": false }],
+      "realmRoles": ["hr_manager"]
+    },
+    {
+      "username": "dev-demo",
+      "firstName": "Developer",
+      "lastName": "Demo",
+      "email": "dev-demo@cybergroup.local",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "DevDemo123!Init", "temporary": false }],
+      "realmRoles": ["developer"]
+    },
+    {
+      "username": "normal-demo",
+      "firstName": "Normal",
+      "lastName": "Demo",
+      "email": "normal-demo@cybergroup.local",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [],
+      "credentials": [{ "type": "password", "value": "NormalDemo123!Init", "temporary": false }],
+      "realmRoles": ["normal"]
+    }
+  ]
+}
