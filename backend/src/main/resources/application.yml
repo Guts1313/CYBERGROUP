@@ -1,6 +1,13 @@
 spring:
   application:
     name: iam-backend
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # W2 #14 — Backend as OAuth2 resource server pointing at the cybergroup realm.
+          # JWK set URI is auto-derived from the issuer-uri.
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/cybergroup}
 
 server:
   port: 8081
