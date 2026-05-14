@@ -31,5 +31,159 @@
     "CLIENT_LOGIN", "CLIENT_LOGIN_ERROR"
   ],
   "adminEventsEnabled": true,
-  "adminEventsDetailsEnabled": true
+  "adminEventsDetailsEnabled": true,
+
+  "passwordPolicy": "length(12) and digits(1) and lowerCase(1) and upperCase(1) and specialChars(1) and notUsername and notEmail and passwordHistory(5) and forceExpiredPasswordChange(180)",
+
+  "accessTokenLifespan": 900,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespanEnabled": true,
+  "offlineSessionMaxLifespan": 5184000,
+  "clientSessionIdleTimeout": 0,
+  "clientSessionMaxLifespan": 0,
+  "refreshTokenMaxReuse": 0,
+  "revokeRefreshToken": true,
+
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA256",
+  "otpPolicyInitialCounter": 0,
+  "otpPolicyDigits": 6,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyPeriod": 30,
+  "otpSupportedApplications": [
+    "totpAppMicrosoftAuthenticatorName",
+    "totpAppGoogleName",
+    "totpAppFreeOTPName"
+  ],
+
+  "roles": {
+    "realm": [
+      { "name": "admin",       "description": "Full administrative access (Admin role from C2 matrix)" },
+      { "name": "it_manager",  "description": "IT operations and infrastructure management" },
+      { "name": "hr_manager",  "description": "HR systems access" },
+      { "name": "developer",   "description": "Developer access to repos and internal APIs" },
+      { "name": "normal",      "description": "Standard worker access (workstation, email)" }
+    ]
+  },
+
+  "defaultRole": {
+    "name": "default-roles-cybergroup",
+    "description": "Default role for the cybergroup realm",
+    "composite": true,
+    "clientRole": false,
+    "containerId": "cybergroup"
+  },
+
+  "clients": [
+    {
+      "clientId": "iam-backend",
+      "name": "IAM Backend (resource server, bearer-only)",
+      "description": "Spring Boot backend that validates JWTs issued by this realm. No login flow.",
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "publicClient": false,
+      "bearerOnly": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "iam-frontend",
+      "name": "IAM Frontend SPA (public, Auth Code + PKCE)",
+      "description": "TypeScript SPA. PKCE-only, no client secret in browser.",
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "publicClient": true,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "http://localhost:5173/auth/callback"
+      ],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      },
+      "protocol": "openid-connect"
+    }
+  ],
+
+  "users": [
+    {
+      "username": "admin-demo",
+      "email": "admin-demo@cybergroup.local",
+      "firstName": "Admin",
+      "lastName": "Demo",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "AdminDemo123!Init", "temporary": false }
+      ],
+      "realmRoles": ["admin"],
+      "requiredActions": ["CONFIGURE_TOTP"]
+    },
+    {
+      "username": "itmgr-demo",
+      "email": "itmgr-demo@cybergroup.local",
+      "firstName": "IT Manager",
+      "lastName": "Demo",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "ITMgrDemo123!Init", "temporary": false }
+      ],
+      "realmRoles": ["it_manager"],
+      "requiredActions": ["CONFIGURE_TOTP"]
+    },
+    {
+      "username": "hrmgr-demo",
+      "email": "hrmgr-demo@cybergroup.local",
+      "firstName": "HR Manager",
+      "lastName": "Demo",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "HRMgrDemo123!Init", "temporary": false }
+      ],
+      "realmRoles": ["hr_manager"],
+      "requiredActions": ["CONFIGURE_TOTP"]
+    },
+    {
+      "username": "dev-demo",
+      "email": "dev-demo@cybergroup.local",
+      "firstName": "Developer",
+      "lastName": "Demo",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "DevDemo123!Init", "temporary": false }
+      ],
+      "realmRoles": ["developer"],
+      "requiredActions": ["CONFIGURE_TOTP"]
+    },
+    {
+      "username": "normal-demo",
+      "email": "normal-demo@cybergroup.local",
+      "firstName": "Normal",
+      "lastName": "Demo",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "NormalDemo123!Init", "temporary": false }
+      ],
+      "realmRoles": ["normal"],
+      "requiredActions": ["CONFIGURE_TOTP"]
+    }
+  ]
 }
