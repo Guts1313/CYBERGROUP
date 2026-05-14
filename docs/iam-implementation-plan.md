@@ -132,12 +132,4 @@ The longest chain is `K1 → K2 → K4 → W2 → W3 → W4 → W5 → M4`. That
 
 ---
 
-## If you assign an agent to the work
-
-| Tag | Tasks | Notes |
-|---|---|---|
-| Agent-suitable | K1, K2, K4, K5, D1, D2, D3, W1, W2, W3, W4, W5, M1, M2, M3, M4, N3 (docs) | Config files, code, and docs — agent can land PRs |
-| Hybrid (agent drafts, human applies) | N1, N2 | Agent can produce pfSense rules / VLAN config; human applies on the box |
-| Human-only | K3 hardware enrolment, M5 vendor coordination, hardware procurement | People + physical access |
-
 If you delegate, the cleanest unit of work is **one phase at a time, scoped to one area**, e.g. "implement Phase 2 K-block (K2 + K5)" or "implement Phase 3 D-block (D2 + D3)." That gives the agent a coherent slice with verifiable exit criteria, instead of jumping across the dependency graph.
