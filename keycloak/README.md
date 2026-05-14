@@ -53,7 +53,7 @@ The `cybergroup` realm auto-imports on first boot from `realm-import/cybergroup-
 - All 5 demo users have `CONFIGURE_TOTP` required action — they're forced to enrol on first login
 - After enrolment, the default browser flow's conditional OTP step prompts for the code
 
-**Roles (K2 #16):** `admin`, `it_manager`, `hr_manager`, `developer`, `normal` — full access matrix lives in C2 #34 (when written) and W5 #27.
+**Roles (K2 #16):** `admin`, `it_manager`, `hr_manager`, `developer`, `normal` — full access matrix is in [`docs/iam/role-access-matrix.md`](../docs/iam/role-access-matrix.md) (W5 #27); non-technical client-facing version lives in C2 #34.
 
 **OIDC clients (K4 #13):**
 | `clientId` | Type | Used by | Notes |
@@ -81,9 +81,11 @@ docker compose down -v        # drops the keycloak-pgdata volume
 docker compose up -d           # fresh Postgres → Keycloak imports the JSON again
 ```
 
-For non-destructive incremental updates, use `kc.sh import` inside the container or the Admin REST API (covered later by O1 #47).
+For non-destructive incremental updates, use `kc.sh import` inside the container or the Admin REST API.
 
-## Backup / restore drill (K1 acceptance)
+## Backup / restore (K1 + O1)
+
+**Manual Postgres dump / restore (K1 #12 — backup drill):**
 
 ```
 chmod +x scripts/backup.sh scripts/restore.sh
@@ -91,7 +93,27 @@ chmod +x scripts/backup.sh scripts/restore.sh
 ./scripts/restore.sh ./backups/keycloak-pg-<timestamp>.sql.gz
 ```
 
-Production automation lives in O1 #47 (realm export) and O2 #48 (pg_dump + WAL).
+**Nightly realm export (O1 #47):**
+
+```
+./scripts/realm-export.sh                          # one-shot
+crontab scripts/realm-export.cron.example          # nightly automation
+./scripts/realm-reimport-drill.sh ./backups/realm-exports/latest
+```
+
+The realm-export script:
+- Runs `kc.sh export` inside the running container
+- Writes a timestamped directory under `./backups/realm-exports/`
+- Symlinks `latest` for convenience
+- Keeps the last 30 exports, drops older ones
+
+Re-import drill spins up a disposable Postgres + Keycloak, imports the export, and tears everything down — proves the backup actually works.
+
+Production pg_dump + WAL archiving is O2 #48 (not yet implemented).
+
+## Upgrades (O4 #50)
+
+In-place upgrades follow the runbook in [`docs/ops/keycloak-upgrade.md`](../docs/ops/keycloak-upgrade.md): pre-upgrade backup → image tag bump → `docker compose pull` → `docker compose up -d keycloak` → verify → rollback path documented.
 
 ## Migration to IdP VLAN (after CurlyRed's N1 sync point)
 
@@ -113,7 +135,7 @@ Production automation lives in O1 #47 (realm export) and O2 #48 (pg_dump + WAL).
 | K5 #22 | Password / session policy | B ✓ |
 | K4 #13 | OIDC clients (`iam-backend`, `iam-frontend`) | B ✓ |
 | K3 #15 | TOTP MFA flows | B ✓ |
-| O1 #47 | Realm export automation | E |
+| O1 #47 | Realm export automation | E ✓ |
 | O2 #48 | pg_dump + WAL | E |
 | O3 #49 | `/metrics` → Prometheus | E (CurlyRed) |
-| O4 #50 | Upgrade runbook | E |
+| O4 #50 | Upgrade runbook | E ✓ |
