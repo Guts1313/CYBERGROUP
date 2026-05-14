@@ -15,9 +15,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 /**
- * W2 #14 — OAuth2 resource server config.
- * W3 #18 — Stateless JWT-based auth on every non-public endpoint.
- * W4 #26 — Method-level authorization enabled (@PreAuthorize on controllers).
+ * OAuth2 resource server config.
+ * Stateless JWT-based auth on every non-public endpoint.
+ * Method-level authorization enabled (@PreAuthorize on controllers).
  */
 @Configuration
 @EnableMethodSecurity
