@@ -48,7 +48,7 @@ Last updated: 2026-05-14 by CurlyRed (Serhii)
 
 VLAN 40/50 (Users) unmapped — defer to N2.
 
-**Open question for Guts1313:** Are PRO07 PVlan port groups configured as trunked (802.1Q) or access-mode? Affects N2 VLAN strategy.
+**PVlan mode (confirmed by Guts1313, 2026-05-14):** PRO07 PVlans B/C/D are **trunk-mode** (802.1Q tags pass through; pfSense terminates VLANs as sub-interfaces). N2 can proceed using standard VLAN-on-trunk wiring.
 
 ## NetLab access notes (operational)
 - Operator laptop reaches NetLab via Cisco AnyConnect to `vpn.netlab.fontysict.nl`
