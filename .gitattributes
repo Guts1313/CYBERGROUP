@@ -1,0 +1,20 @@
+# Always commit LF for cross-platform consistency.
+* text=auto eol=lf
+
+# Shell scripts MUST be LF or they break on Linux/macOS.
+*.sh text eol=lf
+
+# Likewise for Dockerfiles and YAML configs.
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binary files — never touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary

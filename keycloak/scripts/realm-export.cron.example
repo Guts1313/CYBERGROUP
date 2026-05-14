@@ -1,0 +1,9 @@
+# O1 #47 — example crontab to install on the host running the Keycloak compose stack.
+#
+# 1. Edit paths to match your installation.
+# 2. Install with:  crontab realm-export.cron.example
+# 3. Verify with:   crontab -l
+#
+# Runs at 02:30 UTC daily. Output goes to /var/log/keycloak-realm-export.log.
+
+30 2 * * * cd /opt/cybergroup/keycloak && EXPORT_DIR=/var/backups/keycloak/realm-exports ./scripts/realm-export.sh >> /var/log/keycloak-realm-export.log 2>&1
