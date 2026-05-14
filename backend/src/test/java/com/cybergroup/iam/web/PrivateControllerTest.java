@@ -7,9 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
+import java.util.Arrays;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -113,10 +117,10 @@ class PrivateControllerTest {
 
     // -- helpers ---------------------------------------------------------------
 
-    private static org.springframework.test.web.servlet.request.RequestPostProcessor jwtWithRoles(String... roles) {
-        var authorities = java.util.Arrays.stream(roles)
+    private static RequestPostProcessor jwtWithRoles(String... roles) {
+        GrantedAuthority[] authorities = Arrays.stream(roles)
             .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
-            .toList();
+            .toArray(GrantedAuthority[]::new);
         return jwt().authorities(authorities);
     }
 }

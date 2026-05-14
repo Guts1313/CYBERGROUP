@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -31,12 +32,15 @@ public class PrivateController {
     @GetMapping
     @Operation(summary = "Any authenticated user — echoes claims from the JWT")
     public Map<String, Object> any(@AuthenticationPrincipal Jwt jwt) {
-        return Map.of(
-            "endpoint", "private",
-            "subject", jwt.getSubject(),
-            "username", jwt.getClaimAsString("preferred_username"),
-            "issuer", jwt.getIssuer().toString()
-        );
+        // LinkedHashMap (vs Map.of) so missing claims don't trigger NPEs and ordering is stable.
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("endpoint", "private");
+        claims.put("subject", jwt.getSubject());
+        claims.put("username", jwt.getClaimAsString("preferred_username"));
+        if (jwt.getIssuer() != null) {
+            claims.put("issuer", jwt.getIssuer().toString());
+        }
+        return claims;
     }
 
     @GetMapping("/admin")
