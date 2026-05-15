@@ -39,9 +39,9 @@ Direction notation: `Source → Destination`. Flows are stateful — the return 
 | 19 | `prometheus` `10.0.30.32`   | `pfsense-lan` `10.0.99.1` | `9100/tcp`  | allow  | Prometheus scrapes node_exporter on pfSense.                                              |
 | 20 | All VLANs                   | DNS resolver (pfSense `10.0.X.1`) | `53/udp`, `53/tcp` | allow | Local DNS resolution. Each VLAN uses its own gateway as resolver, no cross-VLAN DNS.   |
 | 21 | All VLANs                   | NTP (pfSense `10.0.X.1`)  | `123/udp`   | allow  | Time sync. Token expiry / log correlation breaks without it.                              |
-| 22 | DMZ `10.0.10.0/24`          | WAN                       | `443/tcp`, `80/tcp` | allow | NGINX needs outbound for CRL/OCSP, ACME (Let's Encrypt) if used, package updates.          |
-| 23 | IdP `10.0.20.0/24`          | WAN                       | `443/tcp`   | allow (egress-restricted) | Keycloak outbound for federation (if used) + package updates. Lock to specific FQDNs via pfSense alias when possible. |
-| 24 | Services `10.0.30.0/24`     | WAN                       | `443/tcp`   | allow (egress-restricted) | Package updates + outbound API calls from app backend, locked by alias.                  |
+| 22 | DMZ `10.0.10.0/24`          | `Any` ¹                   | `443/tcp`, `80/tcp` | allow | NGINX needs outbound for CRL/OCSP, ACME (Let's Encrypt) if used, package updates. Destination `Any` — see §4 footnote ¹.                |
+| 23 | IdP `10.0.20.0/24`          | `Any` ¹                   | `443/tcp`   | allow (egress-restricted) | Keycloak outbound for federation (if used) + package updates. Lock to specific FQDNs via pfSense alias when possible. Destination `Any` — see §4 footnote ¹. |
+| 24 | Services `10.0.30.0/24`     | `Any` ¹                   | `443/tcp`   | allow (egress-restricted) | Package updates + outbound API calls from app backend, locked by alias. Destination `Any` — see §4 footnote ¹. |
 | 25 | User-General `10.0.50.0/24` | WAN                       | `80/tcp`, `443/tcp` | allow | Normal user internet browsing.                                                            |
 | 26 | User-Admin `10.0.40.0/24`   | WAN                       | `80/tcp`, `443/tcp` | allow | Admin internet browsing. Tighter logging on this VLAN.                                    |
 
@@ -63,6 +63,21 @@ Notes:
 
 - V2's destination is the User-Admin VLAN subnet because Grafana / Keycloak admin UIs are exposed to that VLAN only (see #13 and the admin pattern around #14). If a future change moves those consoles behind NGINX, V2 collapses into V3.
 - V4 is the VPN equivalent of D5/D6: no VLAN — not User-General, not User-Admin, not VPN — reaches Keycloak directly.
+
+---
+
+## 2b. Sanity ICMP (diagnostic ping to gateway)
+
+pfSense does **not** implicitly allow ICMP to its own interfaces. Under our deny-by-default posture, `ping <gateway>` from inside any VLAN fails unless each interface has an explicit allow rule. These rules are narrow: only within-VLAN ICMP echo to the gateway IP. They don't enable cross-VLAN ping — the explicit denies in §3 still block ICMP between VLANs.
+
+| #             | Source         | Destination                  | Port / Proto    | Action | Justification                                          |
+| ------------- | -------------- | ---------------------------- | --------------- | ------ | ------------------------------------------------------ |
+| #sanity-DMZ   | `DMZ subnets`  | `DMZ address` (`10.0.10.1`)  | ICMP `echoreq`  | allow  | Operator diagnostic ping to DMZ gateway.               |
+| #sanity-SVC   | `SVC subnets`  | `SVC address` (`10.0.30.1`)  | ICMP `echoreq`  | allow  | Operator diagnostic ping to Services gateway.          |
+| #sanity-MGMT  | `MGMT subnets` | `MGMT address` (`10.0.99.1`) | ICMP `echoreq`  | allow  | Operator diagnostic ping to Management gateway.        |
+| #sanity-IDP   | `LAN subnets`  | `LAN address` (`10.0.20.1`)  | ICMP `echoreq`  | allow  | Operator diagnostic ping to IdP gateway (LAN tab).     |
+
+**ICMP subtype matters.** Select `Echo request` (`echoreq`, type 8), NOT `Echo reply` (`echorep`, type 0). The two options sit adjacent in pfSense's alphabetised dropdown. Echo replies are handled automatically by pf's stateful tracking — only the outgoing echoreq needs an explicit allow. Picking `echorep` produces a silent failure mode: ping-to-gateway times out on an otherwise correctly-configured firewall.
 
 ---
 
@@ -98,6 +113,17 @@ Notes:
 - **Aliases**: define pfSense aliases for `IDP_NET`, `SVC_NET`, `DMZ_NET`, `USER_ADMIN`, `USER_GENERAL`, `MGMT_NET`, and host aliases for `KEYCLOAK`, `NGINX_EDGE`, `APP_BACKEND`, `LOKI`, `PROMETHEUS`. Rules should reference aliases, not raw IPs, so a re-IP doesn't rewrite the ruleset.
 - **Rule order**: deny-by-default goes last. WAN-side denies (D1–D4) go above the WAN allow (#1, #2) only if you express them as "deny WAN → internal except NGINX:443/80"; otherwise rely on the implicit "no rule = no flow" on internal-facing interfaces.
 - **Ports recap** (so the operator doesn't have to grep): NGINX `443/80`, Keycloak `8443` (TLS) or `8080` (plain), Keycloak mgmt/metrics `9000`, Postgres `5432`, Loki `3100`, Grafana `3000`, NGINX exporter `9113`, node_exporter `9100`, DNS `53`, NTP `123`, SSH `22`.
+- **pfSense rule-editor dropdown types (pfSense 2.8.1).** For any *alias* reference — Host or Network type — pick dropdown **`Address or Alias`** and type the alias name. The `Network` dropdown rejects alias names with a `bit count required` validation error; it accepts only literal CIDR input.
+
+  | Source / Destination is…                    | pfSense dropdown                            |
+  |---------------------------------------------|---------------------------------------------|
+  | Any single IP, any alias (Host or Network)  | `Address or Alias`                          |
+  | A raw CIDR typed by hand                    | `Network`                                   |
+  | Whole subnet attached to local interface    | `<INTERFACE> subnets` (e.g. `DMZ subnets`)  |
+  | pfSense's own IP on that interface          | `<INTERFACE> address` (e.g. `WAN address`)  |
+
+- **¹ pfSense `WAN address` semantics.** `WAN address` in pfSense rules is a built-in macro meaning *the IP assigned to pfSense's WAN-facing interface*, not *"out via WAN"*. For internet-egress allow rules (#22, #23, #24), the destination must be `Any` and the rule must sit **after** the cross-VLAN deny rules on the same tab. First-match semantics: the denies catch internal destinations first; only true public-internet destinations fall through to the egress allow.
+- **Cleaner future revision for #22/#23/#24.** Add an alias `RFC1918` = `{10/8, 172.16/12, 192.168/16}`. Set each egress rule's destination to `Address or Alias` with value `RFC1918` and check **Invert match**. The rule then matches only non-RFC1918 destinations (true public internet); the cross-VLAN-deny ordering dependency disappears. Tracked as a follow-up cleanup ticket; not blocking N2.
 
 ---
 
@@ -105,5 +131,5 @@ Notes:
 
 - [x] IP plan exists and is versioned (this repo, `network/ip-plan.md`).
 - [x] Inter-VLAN ACL matrix exists and is versioned (this file).
-- [ ] pfSense ruleset matches sections 2 + 3 of this document (verified by reading the running config side-by-side with this file).
+- [x] pfSense ruleset matches sections 2 + 2b + 3 of this document (verified during the N2 in-lab build, 2026-05-15 — 17 aliases + ~64 filter rules across DMZ/SVC/LAN/MGMT/WG_TUN tabs; see `pfsense-baseline.xml`).
 - [ ] A `curl https://<wan>` from outside reaches NGINX; a `curl http://10.0.20.10:8080` from User-General is dropped and logged.

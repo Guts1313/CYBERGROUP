@@ -8,7 +8,7 @@ Group J / Fontys S7 proof-of-concept for centralised identity & access managemen
 
 | Pillar | Owner | Status | Docs |
 |---|---|---|---|
-| **N — Network** (pfSense, VLANs, ACLs) | CurlyRed | N1 deployed; N2/N3 next | [`docs/n1-perimeter-firewall.md`](docs/n1-perimeter-firewall.md), [`network/ip-plan.md`](network/ip-plan.md), [`network/inter-vlan-acl.md`](network/inter-vlan-acl.md), [`netlab-interfaces.md`](netlab-interfaces.md) |
+| **N — Network** (pfSense, VLANs, ACLs) | CurlyRed | N1 deployed; N2/N3 next | [`docs/n1-perimeter-firewall.md`](docs/n1-perimeter-firewall.md), [`network/ip-plan.md`](network/ip-plan.md), [`network/inter-vlan-acl.md`](network/inter-vlan-acl.md), [`network/netlab-interfaces.md`](network/netlab-interfaces.md) |
 | **K — Keycloak / IAM core** | Guts1313 | Phase A + B + C merged (realm, roles, MFA, clients, JWT) | [`keycloak/`](keycloak/), [`docs/iam/role-access-matrix.md`](docs/iam/role-access-matrix.md), [`docs/ops/keycloak-upgrade.md`](docs/ops/keycloak-upgrade.md) |
 | **W — Web app / RBAC** | Guts1313 | W1–W5 merged | [`backend/`](backend/), [`docs/iam/role-access-matrix.md`](docs/iam/role-access-matrix.md) |
 | **D — DMZ (NGINX + WAF)** | CurlyRed | drafts ready (D1/D2/D3) | [`dmz/`](dmz/) (unmerged drafts) |
@@ -39,7 +39,7 @@ dmz/              NGINX + ModSecurity drafts (D1/D2/D3 — unmerged)
 monitoring/       Loki/Grafana/Promtail/Prometheus drafts (M2/M3/O3 — unmerged)
 docs/             Plan, runbooks, role-access matrix, test reports, security
 pfsense-baseline.xml   Sanitised perimeter config dump (N1)
-netlab-interfaces.md   Current NetLab addressing and access notes
+network/netlab-interfaces.md   Current NetLab addressing and access notes
 ```
 
 ## Onboarding
@@ -49,7 +49,7 @@ If you're new to the project, read in this order:
 1. [`docs/iam-implementation-plan.md`](docs/iam-implementation-plan.md) — overall plan
 2. [`docs/n1-perimeter-firewall.md`](docs/n1-perimeter-firewall.md) — perimeter walkthrough (architecture, quick facts, runbooks)
 3. [`network/ip-plan.md`](network/ip-plan.md) — addressing scheme
-4. [`netlab-interfaces.md`](netlab-interfaces.md) — current NetLab state
+4. [`network/netlab-interfaces.md`](network/netlab-interfaces.md) — current NetLab state
 5. [`docs/iam/role-access-matrix.md`](docs/iam/role-access-matrix.md) — the 5-role permission model
 
 ## Issue tracker

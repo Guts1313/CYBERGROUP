@@ -1,4 +1,28 @@
 <?xml version="1.0"?>
+<!--
+  ============================================================================
+  KNOWN ISSUE — TLS private key historical leak (security follow-up #TBD)
+  ============================================================================
+  The <prv> tag in <cert> is redacted in this current file (HEAD), BUT the
+  unredacted RSA private key for the webConfigurator self-signed TLS cert
+  was committed in plaintext in earlier versions of network/pfsense-baseline.xml
+  (specifically the N1 baseline commit).
+
+  Blast radius: small (lab, self-signed cert, GUI reachable only from LAN/MGMT/WG,
+  no production trust). Not blocking N2 sign-off.
+
+  Required follow-up before any external review or production-like use:
+    1. Rotate the webConfigurator cert in pfSense:
+         System → Cert Manager → System Certificates → delete current
+         "webConfigurator default (651eb1516e639)" → create new cert.
+    2. Re-export config, re-sanitize, commit as pfsense-baseline.xml.
+    3. Optionally scrub git history with `git filter-repo` to remove the
+       historical leak (only worth doing if step 1 is done first; otherwise
+       step 1 alone renders the leaked key inert).
+
+  Tracking: GitHub issue to be created post-N2.
+  ============================================================================
+-->
 <pfsense>
 	<version>24.0</version>
 	<lastchange></lastchange>
@@ -63,7 +87,7 @@
 	<interfaces>
 		<wan>
 			<enable></enable>
-			<if>vmx0</if>
+			<if>vmx1</if>
 			<descr><![CDATA[WAN]]></descr>
 			<ipaddr>dhcp</ipaddr>
 			<dhcphostname></dhcphostname>
@@ -92,7 +116,7 @@
 		</wan>
 		<lan>
 			<enable></enable>
-			<if>vmx1</if>
+			<if>vmx3</if>
 			<ipaddr>10.0.20.1</ipaddr>
 			<subnet>24</subnet>
 			<ipaddrv6></ipaddrv6>
@@ -103,6 +127,7 @@
 			<track6-prefix-id>0</track6-prefix-id>
 			<gateway></gateway>
 			<gatewayv6></gatewayv6>
+			<descr><![CDATA[LAN]]></descr>
 		</lan>
 		<opt1>
 			<descr><![CDATA[WG_TUN]]></descr>
@@ -112,6 +137,30 @@
 			<subnet>24</subnet>
 			<spoofmac></spoofmac>
 		</opt1>
+		<opt2>
+			<descr><![CDATA[DMZ]]></descr>
+			<if>vmx4</if>
+			<spoofmac></spoofmac>
+			<enable></enable>
+			<ipaddr>10.0.10.1</ipaddr>
+			<subnet>24</subnet>
+		</opt2>
+		<opt3>
+			<descr><![CDATA[SVC]]></descr>
+			<if>vmx0</if>
+			<enable></enable>
+			<ipaddr>10.0.30.1</ipaddr>
+			<subnet>24</subnet>
+			<spoofmac></spoofmac>
+		</opt3>
+		<opt4>
+			<descr><![CDATA[MGMT]]></descr>
+			<if>vmx2</if>
+			<enable></enable>
+			<ipaddr>10.0.99.1</ipaddr>
+			<subnet>24</subnet>
+			<spoofmac></spoofmac>
+		</opt4>
 	</interfaces>
 	<staticroutes></staticroutes>
 	<dhcpd>
@@ -165,16 +214,16 @@
 			<target>10.0.10.10</target>
 			<local-port>443</local-port>
 			<interface>wan</interface>
-			<descr><![CDATA[DMZ NGINX 443 - DISABLED until N2 (D1)]]></descr>
+			<descr><![CDATA[NAT DMZ NGINX 443 - DISABLED until N2 (D1) &mdash; enable after D1 (NGINX) deployment, see netlab-n2-runbook &sect;7 + D1 work order]]></descr>
 			<associated-rule-id>nat_6a05f5f921c919.48810769</associated-rule-id>
-			<updated>
-				<time>1778775545</time>
-				<username><![CDATA[admin@10.0.20.100 (Local Database)]]></username>
-			</updated>
 			<created>
 				<time>1778775545</time>
 				<username><![CDATA[admin@10.0.20.100 (Local Database)]]></username>
 			</created>
+			<updated>
+				<time>1778854957</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
 		</rule>
 	</nat>
 	<filter>
@@ -225,7 +274,7 @@
 				<port>443</port>
 			</destination>
 			<disabled></disabled>
-			<descr><![CDATA[NAT DMZ NGINX 443 - DISABLED until N2 (D1)]]></descr>
+			<descr><![CDATA[NAT NAT DMZ NGINX 443 - DISABLED until N2 (D1) &mdash; enable afte]]></descr>
 			<associated-rule-id>nat_6a05f5f921c919.48810769</associated-rule-id>
 			<tracker>1778775545</tracker>
 			<created>
@@ -371,6 +420,40 @@
 		</rule>
 		<rule>
 			<id></id>
+			<tracker>1778856428</tracker>
+			<type>pass</type>
+			<interface>lan</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>icmp</protocol>
+			<icmptype>echoreq</icmptype>
+			<source>
+				<network>lan</network>
+			</source>
+			<destination>
+				<network>lanip</network>
+			</destination>
+			<descr><![CDATA[[#sanity] ICMP echo to gateway for diagnostics]]></descr>
+			<created>
+				<time>1778856428</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+			<updated>
+				<time>1778857095</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+		</rule>
+		<rule>
+			<id></id>
 			<tracker>1778776582</tracker>
 			<type>pass</type>
 			<interface>lan</interface>
@@ -402,6 +485,275 @@
 				<time>1778776582</time>
 				<username><![CDATA[admin@10.0.20.100 (Local Database)]]></username>
 			</created>
+			<disabled></disabled>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850467</tracker>
+			<type>pass</type>
+			<interface>lan</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>KEYCLOAK</address>
+			</source>
+			<destination>
+				<address>KC_POSTGRES</address>
+				<port>5432</port>
+			</destination>
+			<descr><![CDATA[[#10] keycloak &rarr; kc-postgres:5432]]></descr>
+			<updated>
+				<time>1778850467</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850467</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850510</tracker>
+			<type>block</type>
+			<interface>lan</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<any></any>
+			</source>
+			<destination>
+				<address>KC_POSTGRES</address>
+				<port>5432</port>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D16] only Keycloak talks to kc-postgres]]></descr>
+			<updated>
+				<time>1778850510</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850510</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850530</tracker>
+			<type>block</type>
+			<interface>lan</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>IDP_NET</address>
+			</source>
+			<destination>
+				<address>DMZ_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D11] IdP &rarr; DMZ &mdash; denied]]></descr>
+			<updated>
+				<time>1778850530</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850530</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850545</tracker>
+			<type>block</type>
+			<interface>lan</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>IDP_NET</address>
+			</source>
+			<destination>
+				<address>SVC_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D11] IdP &rarr; Services &mdash; denied]]></descr>
+			<updated>
+				<time>1778850545</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850545</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850563</tracker>
+			<type>block</type>
+			<interface>lan</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>IDP_NET</address>
+			</source>
+			<destination>
+				<address>USER_ADMIN</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D11] IdP &rarr; User-Admin &mdash; denied]]></descr>
+			<updated>
+				<time>1778850563</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850563</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850578</tracker>
+			<type>block</type>
+			<interface>lan</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>IDP_NET</address>
+			</source>
+			<destination>
+				<address>USER_GENERAL</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D11] IdP &rarr; User-General &mdash; denied]]></descr>
+			<updated>
+				<time>1778850578</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850578</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850597</tracker>
+			<type>block</type>
+			<interface>lan</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>IDP_NET</address>
+			</source>
+			<destination>
+				<address>MGMT_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D11] IdP &rarr; Management &mdash; denied]]></descr>
+			<updated>
+				<time>1778850597</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850597</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850489</tracker>
+			<type>pass</type>
+			<interface>lan</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>IDP_NET</address>
+			</source>
+			<destination>
+				<any></any>
+				<port>443</port>
+			</destination>
+			<descr><![CDATA[[#23] IdP &rarr; WAN egress (federation, updates)]]></descr>
+			<created>
+				<time>1778850489</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+			<updated>
+				<time>1778851118</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
 		</rule>
 		<rule>
 			<id></id>
@@ -489,33 +841,1637 @@
 			<os></os>
 			<protocol>tcp</protocol>
 			<source>
-				<network>opt1</network>
+				<address>VPN_NET</address>
 			</source>
 			<destination>
-				<address>10.0.10.10</address>
+				<address>NGINX_EDGE</address>
 				<port>443</port>
 			</destination>
-			<disabled></disabled>
-			<descr><![CDATA[WG -&gt; DMZ NGINX (443) - DISABLED until N2 (D1)]]></descr>
+			<descr><![CDATA[[V3] VPN -&gt; nginx-edge:443 (no-op until D1)]]></descr>
 			<created>
 				<time>1778778552</time>
 				<username><![CDATA[admin@10.0.20.100 (Local Database)]]></username>
 			</created>
 			<updated>
-				<time>1778778567</time>
-				<username><![CDATA[admin@10.0.20.100 (Local Database)]]></username>
+				<time>1778854306</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
 			</updated>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778854111</tracker>
+			<type>pass</type>
+			<interface>opt1</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>VPN_NET</address>
+			</source>
+			<destination>
+				<address>MGMT_NET</address>
+				<port>22</port>
+			</destination>
+			<descr><![CDATA[[V1] VPN &rarr; Management SSH]]></descr>
+			<updated>
+				<time>1778854111</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778854111</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778854126</tracker>
+			<type>pass</type>
+			<interface>opt1</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>VPN_NET</address>
+			</source>
+			<destination>
+				<address>MGMT_NET</address>
+				<port>443</port>
+			</destination>
+			<descr><![CDATA[[V1] VPN &rarr; Management HTTPS]]></descr>
+			<updated>
+				<time>1778854126</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778854126</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778854144</tracker>
+			<type>pass</type>
+			<interface>opt1</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>VPN_NET</address>
+			</source>
+			<destination>
+				<address>USER_ADMIN</address>
+				<port>443</port>
+			</destination>
+			<descr><![CDATA[[V2] VPN &rarr; User-Admin admin consoles (no-op until pt2)]]></descr>
+			<updated>
+				<time>1778854144</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778854144</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778854174</tracker>
+			<type>block</type>
+			<interface>opt1</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>VPN_NET</address>
+			</source>
+			<destination>
+				<address>IDP_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[V4] VPN &rarr; IdP &mdash; denied (must use NGINX /admin/)]]></descr>
+			<updated>
+				<time>1778854174</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778854174</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778854190</tracker>
+			<type>block</type>
+			<interface>opt1</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>VPN_NET</address>
+			</source>
+			<destination>
+				<address>SVC_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[V5] VPN &rarr; Services &mdash; denied]]></descr>
+			<updated>
+				<time>1778854190</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778854190</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778848814</tracker>
+			<type>pass</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>NGINX_EDGE</address>
+			</source>
+			<destination>
+				<address>KEYCLOAK</address>
+				<port>8443</port>
+			</destination>
+			<descr><![CDATA[[#5] nginx-edge -&gt; keycloak:8443 (TLS)]]></descr>
+			<updated>
+				<time>1778848814</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778848814</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778848885</tracker>
+			<type>pass</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>NGINX_EDGE</address>
+			</source>
+			<destination>
+				<address>KEYCLOAK</address>
+				<port>8080</port>
+			</destination>
+			<disabled></disabled>
+			<descr><![CDATA[[#6] DISABLED - enable only if KC behind TLS termination]]></descr>
+			<created>
+				<time>1778848885</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+			<updated>
+				<time>1778848933</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778848923</tracker>
+			<type>pass</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>NGINX_EDGE</address>
+			</source>
+			<destination>
+				<address>APP_BACKEND</address>
+				<port>443</port>
+			</destination>
+			<descr><![CDATA[[#7] nginx-edge -&gt; app-backend:443]]></descr>
+			<updated>
+				<time>1778848923</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778848923</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849110</tracker>
+			<type>pass</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>udp</protocol>
+			<source>
+				<network>opt2</network>
+			</source>
+			<destination>
+				<network>opt2ip</network>
+				<port>53</port>
+			</destination>
+			<descr><![CDATA[[#20] DMZ -&gt; DNS (pfSense) UDP]]></descr>
+			<updated>
+				<time>1778849110</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849110</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849137</tracker>
+			<type>pass</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<network>opt2</network>
+			</source>
+			<destination>
+				<network>opt2ip</network>
+				<port>53</port>
+			</destination>
+			<descr><![CDATA[[#20] DMZ -&gt; DNS (pfSense) TCP]]></descr>
+			<updated>
+				<time>1778849137</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849137</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849179</tracker>
+			<type>pass</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>udp</protocol>
+			<source>
+				<network>opt2</network>
+			</source>
+			<destination>
+				<network>opt2ip</network>
+				<port>123</port>
+			</destination>
+			<descr><![CDATA[[#21] DMZ -&gt; NTP]]></descr>
+			<updated>
+				<time>1778849179</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849179</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778856311</tracker>
+			<type>pass</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>icmp</protocol>
+			<icmptype>echoreq</icmptype>
+			<source>
+				<network>opt2</network>
+			</source>
+			<destination>
+				<network>opt2ip</network>
+			</destination>
+			<descr><![CDATA[[#sanity] ICMP echo to gateway for diagnostics]]></descr>
+			<updated>
+				<time>1778856311</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778856311</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849421</tracker>
+			<type>block</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>DMZ_NET</address>
+			</source>
+			<destination>
+				<address>IDP_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D9] DMZ &rarr; IdP &mdash; denied (anything not #5/#6)]]></descr>
+			<updated>
+				<time>1778849421</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849421</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849446</tracker>
+			<type>block</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>DMZ_NET</address>
+			</source>
+			<destination>
+				<address>SVC_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D8] DMZ &rarr; Services &mdash; denied (anything not #7)]]></descr>
+			<updated>
+				<time>1778849446</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849446</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849465</tracker>
+			<type>block</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>DMZ_NET</address>
+			</source>
+			<destination>
+				<address>USER_ADMIN</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D10] DMZ &rarr; User-Admin &mdash; denied]]></descr>
+			<updated>
+				<time>1778849465</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849465</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849487</tracker>
+			<type>block</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>DMZ_NET</address>
+			</source>
+			<destination>
+				<address>USER_GENERAL</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D10] DMZ &rarr; User-General &mdash; denied]]></descr>
+			<updated>
+				<time>1778849487</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849487</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849505</tracker>
+			<type>block</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>DMZ_NET</address>
+			</source>
+			<destination>
+				<address>MGMT_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D10/D11 style] DMZ &rarr; Management &mdash; denied]]></descr>
+			<updated>
+				<time>1778849505</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849505</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849015</tracker>
+			<type>pass</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<network>opt2</network>
+			</source>
+			<destination>
+				<any></any>
+				<port>443</port>
+			</destination>
+			<descr><![CDATA[[#22] DMZ -&gt; WAN egress 443 (CRL/OCSP/ACME)]]></descr>
+			<created>
+				<time>1778849015</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+			<updated>
+				<time>1778851304</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849059</tracker>
+			<type>pass</type>
+			<interface>opt2</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<network>opt2</network>
+			</source>
+			<destination>
+				<any></any>
+				<port>80</port>
+			</destination>
+			<descr><![CDATA[[#22] DMZ -&gt; WAN egress 80 (CRL/OCSP/ACME)]]></descr>
+			<created>
+				<time>1778849059</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+			<updated>
+				<time>1778851321</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849632</tracker>
+			<type>pass</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>APP_BACKEND</address>
+			</source>
+			<destination>
+				<address>KEYCLOAK</address>
+				<port>8443</port>
+			</destination>
+			<descr><![CDATA[[#8] app-backend &rarr; keycloak:8443 (JWKS)]]></descr>
+			<updated>
+				<time>1778849632</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849632</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849652</tracker>
+			<type>pass</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>HR_SYSTEM</address>
+			</source>
+			<destination>
+				<address>KEYCLOAK</address>
+				<port>8443</port>
+			</destination>
+			<descr><![CDATA[[#11] hr-system &rarr; keycloak:8443 (OIDC)]]></descr>
+			<updated>
+				<time>1778849652</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849652</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849673</tracker>
+			<type>pass</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>PROMETHEUS</address>
+			</source>
+			<destination>
+				<address>KEYCLOAK</address>
+				<port>9000</port>
+			</destination>
+			<descr><![CDATA[[#17] prometheus &rarr; keycloak:9000 (metrics)]]></descr>
+			<updated>
+				<time>1778849673</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849673</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849703</tracker>
+			<type>pass</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>PROMETHEUS</address>
+			</source>
+			<destination>
+				<address>NGINX_EDGE</address>
+				<port>9113</port>
+			</destination>
+			<descr><![CDATA[[#18] prometheus &rarr; nginx-edge:9113]]></descr>
+			<updated>
+				<time>1778849703</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849703</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849732</tracker>
+			<type>pass</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>PROMETHEUS</address>
+			</source>
+			<destination>
+				<address>PFSENSE_LAN</address>
+				<port>9100</port>
+			</destination>
+			<descr><![CDATA[[#19] prometheus &rarr; pfsense:9100 (node_exporter)]]></descr>
+			<updated>
+				<time>1778849732</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849732</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849753</tracker>
+			<type>pass</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<address>APP_BACKEND</address>
+			</source>
+			<destination>
+				<address>APP_POSTGRES</address>
+				<port>5432</port>
+			</destination>
+			<descr><![CDATA[[#9] app-backend &rarr; app-postgres:5432]]></descr>
+			<updated>
+				<time>1778849753</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849753</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849807</tracker>
+			<type>pass</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>udp</protocol>
+			<source>
+				<network>opt3</network>
+			</source>
+			<destination>
+				<network>opt3ip</network>
+				<port>53</port>
+			</destination>
+			<descr><![CDATA[[#20] SVC &rarr; DNS UDP]]></descr>
+			<updated>
+				<time>1778849807</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849807</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849837</tracker>
+			<type>pass</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<network>opt3</network>
+			</source>
+			<destination>
+				<network>opt3ip</network>
+				<port>53</port>
+			</destination>
+			<descr><![CDATA[[#20] SVC &rarr; DNS TCP]]></descr>
+			<updated>
+				<time>1778849837</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849837</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849859</tracker>
+			<type>pass</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>udp</protocol>
+			<source>
+				<network>opt3</network>
+			</source>
+			<destination>
+				<network>opt3ip</network>
+				<port>123</port>
+			</destination>
+			<descr><![CDATA[[#21] SVC &rarr; NTP]]></descr>
+			<updated>
+				<time>1778849859</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849859</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778856361</tracker>
+			<type>pass</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>icmp</protocol>
+			<icmptype>echoreq</icmptype>
+			<source>
+				<network>opt3</network>
+			</source>
+			<destination>
+				<network>opt3ip</network>
+			</destination>
+			<descr><![CDATA[[#sanity] ICMP echo to gateway for diagnostics]]></descr>
+			<created>
+				<time>1778856361</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+			<updated>
+				<time>1778857075</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849976</tracker>
+			<type>block</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<any></any>
+			</source>
+			<destination>
+				<address>APP_POSTGRES</address>
+				<port>5432</port>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D17] only app-backend talks to app-postgres]]></descr>
+			<updated>
+				<time>1778849976</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778849976</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850000</tracker>
+			<type>block</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>SVC_NET</address>
+			</source>
+			<destination>
+				<address>IDP_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D12] Services &rarr; IdP &mdash; denied (anything not #8/#11/#17)]]></descr>
+			<created>
+				<time>1778850000</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+			<updated>
+				<time>1778850061</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850016</tracker>
+			<type>block</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>SVC_NET</address>
+			</source>
+			<destination>
+				<address>USER_ADMIN</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D13] Services &rarr; User-Admin &mdash; denied]]></descr>
+			<updated>
+				<time>1778850016</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850016</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850033</tracker>
+			<type>block</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>SVC_NET</address>
+			</source>
+			<destination>
+				<address>USER_GENERAL</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D13] Services &rarr; User-General &mdash; denied]]></descr>
+			<updated>
+				<time>1778850033</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850033</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850050</tracker>
+			<type>block</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>SVC_NET</address>
+			</source>
+			<destination>
+				<address>MGMT_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[D13-style] Services &rarr; Management &mdash; denied]]></descr>
+			<updated>
+				<time>1778850050</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850050</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778849772</tracker>
+			<type>pass</type>
+			<interface>opt3</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<network>opt3</network>
+			</source>
+			<destination>
+				<any></any>
+				<port>443</port>
+			</destination>
+			<descr><![CDATA[[#24] Services &rarr; WAN egress (locked-down)]]></descr>
+			<created>
+				<time>1778849772</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+			<updated>
+				<time>1778851348</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850132</tracker>
+			<type>pass</type>
+			<interface>opt4</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>udp</protocol>
+			<source>
+				<network>opt4</network>
+			</source>
+			<destination>
+				<network>opt4ip</network>
+				<port>53</port>
+			</destination>
+			<descr><![CDATA[[#20] MGMT &rarr; DNS UDP]]></descr>
+			<updated>
+				<time>1778850132</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850132</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850144</tracker>
+			<type>pass</type>
+			<interface>opt4</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>tcp</protocol>
+			<source>
+				<network>opt4</network>
+			</source>
+			<destination>
+				<network>opt4ip</network>
+				<port>53</port>
+			</destination>
+			<descr><![CDATA[[#20] MGMT &rarr; DNS TCP]]></descr>
+			<updated>
+				<time>1778850144</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850144</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850161</tracker>
+			<type>pass</type>
+			<interface>opt4</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>udp</protocol>
+			<source>
+				<network>opt4</network>
+			</source>
+			<destination>
+				<network>opt4ip</network>
+				<port>123</port>
+			</destination>
+			<descr><![CDATA[[#21] MGMT &rarr; NTP]]></descr>
+			<updated>
+				<time>1778850161</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850161</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778856408</tracker>
+			<type>pass</type>
+			<interface>opt4</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<protocol>icmp</protocol>
+			<icmptype>echoreq</icmptype>
+			<source>
+				<network>opt4</network>
+			</source>
+			<destination>
+				<network>opt4ip</network>
+			</destination>
+			<descr><![CDATA[[#sanity] ICMP echo to gateway for diagnostics]]></descr>
+			<created>
+				<time>1778856408</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+			<updated>
+				<time>1778857088</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850181</tracker>
+			<type>block</type>
+			<interface>opt4</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>MGMT_NET</address>
+			</source>
+			<destination>
+				<address>USER_ADMIN</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[default-deny encoded] MGMT &rarr; User-Admin]]></descr>
+			<updated>
+				<time>1778850181</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850181</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850200</tracker>
+			<type>block</type>
+			<interface>opt4</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>MGMT_NET</address>
+			</source>
+			<destination>
+				<address>USER_GENERAL</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[default-deny encoded] MGMT &rarr; User-General]]></descr>
+			<updated>
+				<time>1778850200</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850200</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850214</tracker>
+			<type>block</type>
+			<interface>opt4</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>MGMT_NET</address>
+			</source>
+			<destination>
+				<address>IDP_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[default-deny encoded] MGMT &rarr; IdP]]></descr>
+			<updated>
+				<time>1778850214</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850214</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850229</tracker>
+			<type>block</type>
+			<interface>opt4</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>MGMT_NET</address>
+			</source>
+			<destination>
+				<address>SVC_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[default-deny encoded] MGMT &rarr; Services]]></descr>
+			<updated>
+				<time>1778850229</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850229</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
+		</rule>
+		<rule>
+			<id></id>
+			<tracker>1778850244</tracker>
+			<type>block</type>
+			<interface>opt4</interface>
+			<ipprotocol>inet</ipprotocol>
+			<tag></tag>
+			<tagged></tagged>
+			<max></max>
+			<max-src-nodes></max-src-nodes>
+			<max-src-conn></max-src-conn>
+			<max-src-states></max-src-states>
+			<statetimeout></statetimeout>
+			<statepolicy></statepolicy>
+			<statetype><![CDATA[keep state]]></statetype>
+			<os></os>
+			<source>
+				<address>MGMT_NET</address>
+			</source>
+			<destination>
+				<address>DMZ_NET</address>
+			</destination>
+			<log></log>
+			<descr><![CDATA[[default-deny encoded] MGMT &rarr; DMZ]]></descr>
+			<updated>
+				<time>1778850244</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</updated>
+			<created>
+				<time>1778850244</time>
+				<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
+			</created>
 		</rule>
 		<separator>
 			<wan></wan>
 			<lan></lan>
+			<opt2></opt2>
+			<opt3></opt3>
+			<opt4></opt4>
 		</separator>
 	</filter>
 	<shaper></shaper>
 	<ipsec>
 		<client></client>
 	</ipsec>
-	<aliases></aliases>
+	<aliases>
+		<alias>
+			<name>DMZ_NET</name>
+			<type>network</type>
+			<address>10.0.10.0/24</address>
+			<descr><![CDATA[DMZ VLAN 10]]></descr>
+			<detail><![CDATA[DMZ VLAN 10]]></detail>
+		</alias>
+		<alias>
+			<name>IDP_NET</name>
+			<type>network</type>
+			<address>10.0.20.0/24</address>
+			<descr><![CDATA[IdP VLAN 20]]></descr>
+			<detail><![CDATA[IdP VLAN 20]]></detail>
+		</alias>
+		<alias>
+			<name>SVC_NET</name>
+			<type>network</type>
+			<address>10.0.30.0/24</address>
+			<descr><![CDATA[Services VLAN 30]]></descr>
+			<detail><![CDATA[Services VLAN 30]]></detail>
+		</alias>
+		<alias>
+			<name>USER_ADMIN</name>
+			<type>network</type>
+			<address>10.0.40.0/24</address>
+			<descr><![CDATA[User-Admin VLAN 40 (N2 pt2)]]></descr>
+			<detail><![CDATA[User-Admin VLAN 40 (N2 pt2)]]></detail>
+		</alias>
+		<alias>
+			<name>USER_GENERAL</name>
+			<type>network</type>
+			<address>10.0.50.0/24</address>
+			<descr><![CDATA[User-General VLAN 50 (N2 pt2)]]></descr>
+			<detail><![CDATA[User-General VLAN 50 (N2 pt2)]]></detail>
+		</alias>
+		<alias>
+			<name>MGMT_NET</name>
+			<type>network</type>
+			<address>10.0.99.0/24</address>
+			<descr><![CDATA[Management VLAN 99]]></descr>
+			<detail><![CDATA[Management VLAN 99]]></detail>
+		</alias>
+		<alias>
+			<name>VPN_NET</name>
+			<type>network</type>
+			<address>10.99.100.0/24</address>
+			<descr><![CDATA[WireGuard tunnel]]></descr>
+			<detail><![CDATA[WireGuard tunnel]]></detail>
+		</alias>
+		<alias>
+			<name>NGINX_EDGE</name>
+			<type>host</type>
+			<address>10.0.10.10</address>
+			<descr><![CDATA[DMZ NGINX (deploys in D1)]]></descr>
+			<detail><![CDATA[DMZ NGINX (deploys in D1)]]></detail>
+		</alias>
+		<alias>
+			<name>KEYCLOAK</name>
+			<type>host</type>
+			<address>10.0.20.10</address>
+			<descr><![CDATA[Keycloak server]]></descr>
+			<detail><![CDATA[Keycloak server]]></detail>
+		</alias>
+		<alias>
+			<name>KC_POSTGRES</name>
+			<type>host</type>
+			<address>10.0.20.20</address>
+			<descr><![CDATA[Keycloak Postgres]]></descr>
+			<detail><![CDATA[Keycloak Postgres]]></detail>
+		</alias>
+		<alias>
+			<name>APP_BACKEND</name>
+			<type>host</type>
+			<address>10.0.30.10</address>
+			<descr><![CDATA[App backend (deploys later)]]></descr>
+			<detail><![CDATA[App backend (deploys later)]]></detail>
+		</alias>
+		<alias>
+			<name>APP_POSTGRES</name>
+			<type>host</type>
+			<address>10.0.30.20</address>
+			<descr><![CDATA[App Postgres]]></descr>
+			<detail><![CDATA[App Postgres]]></detail>
+		</alias>
+		<alias>
+			<name>LOKI</name>
+			<type>host</type>
+			<address>10.0.30.30</address>
+			<descr><![CDATA[Loki log store]]></descr>
+			<detail><![CDATA[Loki log store]]></detail>
+		</alias>
+		<alias>
+			<name>GRAFANA</name>
+			<type>host</type>
+			<address>10.0.30.31</address>
+			<descr><![CDATA[Grafana]]></descr>
+			<detail><![CDATA[Grafana]]></detail>
+		</alias>
+		<alias>
+			<name>PROMETHEUS</name>
+			<type>host</type>
+			<address>10.0.30.32</address>
+			<descr><![CDATA[Prometheus]]></descr>
+			<detail><![CDATA[Prometheus]]></detail>
+		</alias>
+		<alias>
+			<name>HR_SYSTEM</name>
+			<type>host</type>
+			<address>10.0.30.11</address>
+			<descr><![CDATA[HR system (OIDC client)]]></descr>
+			<detail><![CDATA[HR system (OIDC client)]]></detail>
+		</alias>
+		<alias>
+			<name>PFSENSE_LAN</name>
+			<type>host</type>
+			<address>10.0.99.1</address>
+			<descr><![CDATA[pfSense MGMT-side IP]]></descr>
+			<detail><![CDATA[pfSense MGMT-side IP]]></detail>
+		</alias>
+	</aliases>
 	<proxyarp></proxyarp>
 	<cron>
 		<item>
@@ -650,9 +2606,9 @@
 	<vlans></vlans>
 	<qinqs></qinqs>
 	<revision>
-		<time>1778784885</time>
-		<description><![CDATA[admin@10.0.20.101 (Local Database): Suricata pkg: save enabled rule categories for wan.]]></description>
-		<username><![CDATA[admin@10.0.20.101 (Local Database)]]></username>
+		<time>1778857095</time>
+		<description><![CDATA[admin@10.99.100.2 (Local Database): Firewall: Rules - saved/edited a firewall rule.]]></description>
+		<username><![CDATA[admin@10.99.100.2 (Local Database)]]></username>
 	</revision>
 	<gateways>
 		<gateway_item>
@@ -684,7 +2640,7 @@
 		<descr><![CDATA[webConfigurator default (651eb1516e639)]]></descr>
 		<type>server</type>
 		<crt>LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVlekNDQTJPZ0F3SUJBZ0lJYytKelREVnlaWU13RFFZSktvWklodmNOQVFFTEJRQXdXakU0TURZR0ExVUUKQ2hNdmNHWlRaVzV6WlNCM1pXSkRiMjVtYVdkMWNtRjBiM0lnVTJWc1ppMVRhV2R1WldRZ1EyVnlkR2xtYVdOaApkR1V4SGpBY0JnTlZCQU1URlhCbVUyVnVjMlV0TmpVeFpXSXhOVEUyWlRZek9UQWVGdzB5TlRFeE1qY3hNREUyCk1EWmFGdzB5TmpFeU16QXhNREUyTURaYU1Gb3hPREEyQmdOVkJBb1RMM0JtVTJWdWMyVWdkMlZpUTI5dVptbG4KZFhKaGRHOXlJRk5sYkdZdFUybG5ibVZrSUVObGNuUnBabWxqWVhSbE1SNHdIQVlEVlFRREV4VndabE5sYm5ObApMVFkxTVdWaU1UVXhObVUyTXprd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUJEd0F3Z2dFS0FvSUJBUUM4ClY3ZTVUeW5IaVpQeHJQTTlXN0kya1R4cjY1a3g1UnZ3WUVURDlHS0NINGVYMFMvbDkraWV1OUdENHcwWkVhWlUKTUlSUXBMNklKWFNUb1Rndm1jZUU4QkhZU3M5L1B2WTJjWXlrVnlaUFlNOTFDbFBuWVdHZ3h5eWVmL0tIY2RBRgo2QThEUHZybGhNN3VXTiswWVg4L25aM0Y2M3VnUm1TUzdrQVZJaDBLS2N1TkszNlZFa2pYbVV4L3FiRHFkQ0NzCk0zU1d1K2J0SUllOFlHYzhvaVNkSDBmcGZGWjBxdFVLaEhkU0RaelVibG4wMThRRjVFVE4wNjZwK29iMnExbjkKbUt4anhoWmE4THhIUG1NU0lrOXlMYzY3US9TQXNFRFgxM2M3YjkzZ3luNGYvUDFKbnFsdFRsRFBaTDlETjI5NQpJK2VJVjBscHFkRGRVZUs2TENCUkFnTUJBQUdqZ2dGRE1JSUJQekFKQmdOVkhSTUVBakFBTUJFR0NXQ0dTQUdHCitFSUJBUVFFQXdJR1FEQUxCZ05WSFE4RUJBTUNCYUF3TXdZSllJWklBWWI0UWdFTkJDWVdKRTl3Wlc1VFUwd2cKUjJWdVpYSmhkR1ZrSUZObGNuWmxjaUJEWlhKMGFXWnBZMkYwWlRBZEJnTlZIUTRFRmdRVXBKR1RWSmxtbjdZYwo1Qm1IVEc5bHRydUZ1cG93Y3dZRFZSMGpCR3d3YXFGZXBGd3dXakU0TURZR0ExVUVDaE12Y0daVFpXNXpaU0IzClpXSkRiMjVtYVdkMWNtRjBiM0lnVTJWc1ppMVRhV2R1WldRZ1EyVnlkR2xtYVdOaGRHVXhIakFjQmdOVkJBTVQKRlhCbVUyVnVjMlV0TmpVeFpXSXhOVEUyWlRZek9ZSUljK0p6VERWeVpZTXdKd1lEVlIwbEJDQXdIZ1lJS3dZQgpCUVVIQXdFR0NDc0dBUVVGQndNQ0JnZ3JCZ0VGQlFnQ0FqQWdCZ05WSFJFRUdUQVhnaFZ3WmxObGJuTmxMVFkxCk1XVmlNVFV4Tm1VMk16a3dEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBQzYxSS9PeEpnTUR5cnhhYkdNT3JuNzUKZUFWbWFsUXUvS1V1bnRiTURZTTUwZWNhMVA1WkZmMVY4UUdCSXFYakJVcldpSnA1YlpQOGpsNDljMWJkYXZkcgoyZjFrUFBmR0Y0S3dpYitjQmNwTmNrSXFYR29aMHlobTcxZ0d1Wm4zT3hOdlJEc2E1aDNibzYrK09sUzk2OW9zCjROcVZxSWZ6Vm5SOHN2M0d0VFlrV2VIT1N4ekNYQjVTQ3V3WGN1RFgrSHo5LzlUVnBHcExGRjlDY1J3RWxYY1EKeVJ3K0dlWFkrVVNOczQvdCthZXV2eWpSREVkNG5taFc1YkNJN1hxb3Z6bkFUeEREVGw4c3ZNWVAvQVNGaVYrdwp3em9QMnhqbnRqQk5yTFlSeEcvSGFHaXFGbm1PYWdUT2F1bklaQkJsMjBVZzJ2ZGsxZkNmdFJnb3NpMlJYRTg9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K</crt>
-		<prv>LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRQzhWN2U1VHluSGlaUHgKclBNOVc3STJrVHhyNjVreDVSdndZRVREOUdLQ0g0ZVgwUy9sOStpZXU5R0Q0dzBaRWFaVU1JUlFwTDZJSlhTVApvVGd2bWNlRThCSFlTczkvUHZZMmNZeWtWeVpQWU05MUNsUG5ZV0dneHl5ZWYvS0hjZEFGNkE4RFB2cmxoTTd1CldOKzBZWDgvblozRjYzdWdSbVNTN2tBVkloMEtLY3VOSzM2VkVralhtVXgvcWJEcWRDQ3NNM1NXdStidElJZTgKWUdjOG9pU2RIMGZwZkZaMHF0VUtoSGRTRFp6VWJsbjAxOFFGNUVUTjA2NnArb2IycTFuOW1LeGp4aFphOEx4SApQbU1TSWs5eUxjNjdRL1NBc0VEWDEzYzdiOTNneW40Zi9QMUpucWx0VGxEUFpMOUROMjk1SStlSVYwbHBxZERkClVlSzZMQ0JSQWdNQkFBRUNnZ0VBSnVyaE5kTmJ5TFZ1OHBOUU42K0k1YW1oR0pPNE5nMG5kc1lOcjRnQ0N1MUUKOFdQeVI4eXdMb3lVd0hIY05QL21wS0xaMUdnV1RyK2VsUnJOSjFqWlYyamI1eHVlUUtiYjdXZ05MYkFzWkY2Vwp2NUtBditEcGNYVjJqTkhYWlpGbzhLK0EycVRhNXk1SUxBd0ZQWnFmMXA5VkNKNmVEd0k4cWZlOUdpRFFhMWJZCnpaWVV3RVRRZE9hQ0k0b3IvK25EVVZtOTA3YWwvTFIvWXVaamg3UGZlamNWTjlPZm1tYjR0L2RjcHpDZ3NpcFMKNHBrQU1uTHFGaDJxSGpacTd4b3o2WGZuL09tbWxjcWpJQk5kaTRkVWFpdWVCVGM1d2V3RVliRzBQbHRmUDBrZAp1K3NyU040bmE5TStGbm04S1JJTXd6dWRBK0VndVM2bTFQc0Z6RTZGb1FLQmdRRGVtSVEybjFrdVJ0MzBsZllZCmtObTcwWVpPbUlZdi82R1J0ekdITmpvQjhvTUdNZUxQNkJ0WG14U2JMZkxWaTlMSFpRMzdzS2JKdWdEU0dvcGIKTDFDTnJEODNzSTQzUjhTL09CUmttWTh2cXUzbmNSZVc2T2ZwRXhFeGs0S3UxWE5yb2xSa2tjcHVNQUkvVS9LRQpBTitKUm51WWE5c3JUZHFSQlMwTU8yMkNUUUtCZ1FEWW0wdXorTGZYcG1wZ1RqQ3NkbUUwWE9mckJibUZHODFNClQyZXhYaXZQRWhURE1ZUDhVa2w4VWpXcFIwZW91RExTMnk0Y1dubDQ4TkZoODBlZWJDMW9zdmxSMDBsWkt4NkMKN01sNkF2bHZPUmI5eFJveS84SjZFUFRrRWxPSnowR0FrYTRPVnNrbDZud0N4N1Y2L1J6RktyK1lJUEdKN3BwSAptaHB0QmNvd0ZRS0JnUUMzS1pySmM0K25rNnE1d3RmdzJPaEJNeVNuOGJ1aExXRWVqVGFWQXhyeVZVSlpTNTFOCjVMankrbW9YVXRUWndTZGM2WnQ2K3A0VHFobFl5WHdGa2taZmZWZTdsRzFCc2EyRWh6bkltYzhIczBmMXhNcGIKWkNUSVZlYzAreU55aDdOazR2czhrZmFYZXF1dXZuMzAvdDd4ajJ6T1BCbnBaVE92VnluOVFiMVhsUUtCZ0RzNAppa1FVVmo4eGtwZnVDTVMrUU9sT0ZXSmVXRkNhUDFFRHpMZmpwVnFoK09jOUhIYmFFSmxhNkt6MWZoUVUrR0JKCjZKdDc2UVkxNFNsRW1Hb3A3V2hZdG0yMnRMRWFadWNvMGhUM3h6YXZoeWV1d2ZEN21ESkRmSkQycWJ4ZDIrekkKNTZ1bjhxclpKenFqVzJ6YTB3amRIVEQ4b00welhSOENkUU1sdUJmWkFvR0FUU0lrellkWUU3YllQVGRkUXpwcwp6R0wzd1NPYkdlcFJyb1RGL096ZFFGK1E0S2lCNmpuODFBS24rbjhIcHlhQWNzQWpKS2o0UDBDQXlaTUJZb1ZVCk1udGRpaE1vWTV1bjdWeUtDdmxqa2tkNzBiQ0kwMjkzdllLVHVpWTZJVnd3SXJ1eDhaSy8rVlR4UW5taFpWbHMKSUNDTjM5T2doQmNCLzAvcklWVWRmZVU9Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K</prv>
+		<prv>REDACTED-TLS-PRIVATE-KEY</prv>
 	</cert>
 	<ppps></ppps>
 	<installedpackages>
