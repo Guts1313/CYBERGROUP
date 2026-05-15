@@ -7,7 +7,7 @@
 
 This doc is for **team members onboarding to the project**. It explains what was built, how it's configured, and how to work with it day-to-day. It bakes in the NetLab-specific corrections we found during deployment — you don't have to repeat our mistakes.
 
-If you want the full session log with debug history and discovery of corrections, see [`n1-pfsense-session-handoff.md`](./n1-pfsense-session-handoff.md). For the actual config dump, see [`pfsense-baseline.xml`](../pfsense-baseline.xml).
+For the actual config dump see [`pfsense-baseline.xml`](../pfsense-baseline.xml). For the N2 buildout (internal firewall + DMZ/SVC/MGMT VLANs on the same VM), see [`n2-internal-firewall.md`](./n2-internal-firewall.md).
 
 ---
 
@@ -121,7 +121,7 @@ Last resort, when both other methods fail (e.g., you broke your own firewall rul
 
 ## 4. What was built (deployment summary)
 
-A step-by-step recap. NOT a click-through walkthrough — for that, see the session handoff doc. This is a "here's the architecture and config logic" view.
+A step-by-step recap — the "here's the architecture and config logic" view, not a click-through walkthrough.
 
 ### 4.1 VM provisioning
 Deployed from `Templ_pfSense_2.8.1_firewall` (a pre-installed pfSense image NetLab provides). 2 vCPU, 2 GB RAM, 16 GB thin disk. Two NICs: WAN-side on `0189_Internet-DHCP` (simulated internet upstream), LAN-side on `0861_PRO07_PVlanA` (our IdP VLAN segment).
@@ -190,7 +190,7 @@ If you're auditing N1 or want to confirm it's still working:
 | 4 | WG handshake works; LAN reachable only via tunnel | From laptop with WG active: `https://10.0.20.1` loads. From laptop without WG: same URL fails. Diagnostics → Command Prompt → `wg show` → "latest handshake" within seconds when peer is active. |
 | 5 | Suricata installed, ETOpen loaded, alert mode, ≥1 signature fired | Services → Suricata → Alerts tab → SID 1:2100498 visible. Or trigger fresh: from any LAN VM, `echo -n "uid=0(root)" \| nc -u -w 1 8.8.8.8 53` → alert appears within 5s |
 | 6 | `pfsense-baseline.xml` sanitised in repo | `grep -Ei 'password\|privatekey\|presharedkey\|bcrypt' pfsense-baseline.xml \| grep -v REDACTED` → empty output |
-| 7 | `netlab-interfaces.md` filled in | This doc / `netlab-interfaces.md` reflects current state with real values |
+| 7 | `network/netlab-interfaces.md` filled in | This doc / `network/netlab-interfaces.md` reflects current state with real values |
 
 ---
 
@@ -264,31 +264,28 @@ WAN IP is NOT redacted — `192.168.189.16` is NetLab-internal RFC1918, not a ro
 
 ---
 
-## 8. What's next (handoff to N2 and beyond)
+## 8. What's next (handoff to D-series and beyond)
 
-**N2 — Internal firewall + Keycloak migration (Angel / Guts1313):**
-- Deploy second pfSense (Inner FW) between PVlanA and DMZ PVlanB
-- Migrate Keycloak from running outside the pod to its IdP VLAN location (10.0.20.10)
-- Stand up KC-Postgres at 10.0.20.20
-- Once DMZ NGINX is deployed at 10.0.10.10, **enable** the disabled NAT forward rule on pf-iam-n1 WAN
+**N2 — Internal firewall + VLAN segmentation:** ✅ done — see [`n2-internal-firewall.md`](./n2-internal-firewall.md). DMZ/SVC/MGMT VLANs were built on the same `pf-iam-n1` VM by adding three OPT interfaces (not a second pfSense, which the original plan assumed). PVlanA stays as the IdP LAN. Keycloak still needs to migrate from its temporary Docker host to its `10.0.20.10` static IP on PVlanA — that's a separate task in Guts1313's pillar.
 
-**N3 — VLAN segmentation:**
-- Decide trunked-vs-access for PRO07 PVlans (the open question — check with NetLab admins)
-- Build out VLAN 10/30/40/50/99
+**N3 — Inter-VLAN ACLs + IP plan:** ✅ done — encoded in [`network/inter-vlan-acl.md`](../network/inter-vlan-acl.md) and applied to pfSense as part of N2.
 
-**D-series — DMZ deployment:**
-- NGINX edge at 10.0.10.10
-- TLS termination, reverse proxy to Keycloak
+**D1 — NGINX in DMZ:** next on the network/DMZ track. Deploy at `10.0.10.10` in PVlanB. Flip the disabled NAT rule on. Pre-staged DMZ-tab allow rules `[#5]` and `[#7]` make the upstream paths to Keycloak and app-backend available immediately.
+
+**D2 — ModSecurity + OWASP CRS** and **D3 — TLS / security-headers / rate-limits:** follow on from D1.
+
+**N2 part 2 — User VLANs 40 and 50:** deferred. See `n2-internal-firewall.md` §8 for status.
 
 ---
 
 ## Repo files related to N1
 
-- [`pfsense-baseline.xml`](../pfsense-baseline.xml) — sanitised pfSense config dump
-- [`netlab-interfaces.md`](../netlab-interfaces.md) — current addressing / interface mapping
-- [`docs/n1-pfsense-session-handoff.md`](./n1-pfsense-session-handoff.md) — full session log with debug history and 8 plan corrections
-- [`docs/n1-cli-closeout.md`](./n1-cli-closeout.md) — repo-side work order (now complete)
-- This file — onboarding walkthrough
+- [`pfsense-baseline.xml`](../pfsense-baseline.xml) — sanitised pfSense config dump (now in N2 state on top of N1)
+- [`network/netlab-interfaces.md`](../network/netlab-interfaces.md) — current addressing / interface mapping
+- [`network/ip-plan.md`](../network/ip-plan.md) — architectural addressing scheme
+- [`network/inter-vlan-acl.md`](../network/inter-vlan-acl.md) — inter-VLAN ACL spec
+- [`n2-internal-firewall.md`](./n2-internal-firewall.md) — N2 onboarding walkthrough (continuation of this doc)
+- This file — N1 onboarding walkthrough
 
 ---
 
