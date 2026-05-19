@@ -53,9 +53,17 @@ class RbacIntegrationTest extends KeycloakIntegrationTestBase {
     @DisplayName("tampered token signature → 401")
     void protectedEndpoint_tamperedToken_isUnauthorized() {
         String token = getAccessToken(ADMIN, "AdminDemo123!Init");
-        // Flip the last byte of the signature so it no longer verifies.
-        String tampered = token.substring(0, token.length() - 1)
-            + (token.charAt(token.length() - 1) == 'A' ? 'B' : 'A');
+        // Tamper the signature by flipping its FIRST base64url character.
+        // The LAST char of a JWT signature carries only 2 meaningful bits
+        // (the rest is zero padding), so flipping it may decode to the same
+        // bytes and leave the signature valid — that made this test flaky.
+        // The first char carries a full 6 bits, so any change always breaks
+        // verification.
+        int sigStart = token.lastIndexOf('.') + 1;
+        char first = token.charAt(sigStart);
+        String tampered = token.substring(0, sigStart)
+            + (first == 'A' ? 'B' : 'A')
+            + token.substring(sigStart + 1);
         assertThat(get("/api/private", tampered).getStatusCode())
             .isEqualTo(HttpStatus.UNAUTHORIZED);
     }
