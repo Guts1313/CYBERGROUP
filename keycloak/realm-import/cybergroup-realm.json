@@ -121,68 +121,68 @@
 
   "users": [
     {
-      "username": "admin-demo",
-      "email": "admin-demo@cybergroup.local",
+      "username": "admin-test",
+      "email": "admin-test@cybergroup.local",
       "firstName": "Admin",
-      "lastName": "Demo",
+      "lastName": "Test",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "AdminDemo123!Init", "temporary": false }
+        { "type": "password", "value": "IAMGroup123!", "temporary": false }
       ],
-      "realmRoles": ["admin"],
+      "realmRoles": ["default-roles-cybergroup", "admin"],
       "requiredActions": ["CONFIGURE_TOTP"]
     },
     {
-      "username": "itmgr-demo",
-      "email": "itmgr-demo@cybergroup.local",
+      "username": "itmgr-test",
+      "email": "itmgr-test@cybergroup.local",
       "firstName": "IT Manager",
-      "lastName": "Demo",
+      "lastName": "Test",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "ITMgrDemo123!Init", "temporary": false }
+        { "type": "password", "value": "IAMGroup123!", "temporary": false }
       ],
-      "realmRoles": ["it_manager"],
+      "realmRoles": ["default-roles-cybergroup", "it_manager"],
       "requiredActions": ["CONFIGURE_TOTP"]
     },
     {
-      "username": "hrmgr-demo",
-      "email": "hrmgr-demo@cybergroup.local",
+      "username": "hrmgr-test",
+      "email": "hrmgr-test@cybergroup.local",
       "firstName": "HR Manager",
-      "lastName": "Demo",
+      "lastName": "Test",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "HRMgrDemo123!Init", "temporary": false }
+        { "type": "password", "value": "IAMGroup123!", "temporary": false }
       ],
-      "realmRoles": ["hr_manager"],
+      "realmRoles": ["default-roles-cybergroup", "hr_manager"],
       "requiredActions": ["CONFIGURE_TOTP"]
     },
     {
-      "username": "dev-demo",
-      "email": "dev-demo@cybergroup.local",
+      "username": "dev-test",
+      "email": "dev-test@cybergroup.local",
       "firstName": "Developer",
-      "lastName": "Demo",
+      "lastName": "Test",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "DevDemo123!Init", "temporary": false }
+        { "type": "password", "value": "IAMGroup123!", "temporary": false }
       ],
-      "realmRoles": ["developer"],
+      "realmRoles": ["default-roles-cybergroup", "developer"],
       "requiredActions": ["CONFIGURE_TOTP"]
     },
     {
-      "username": "normal-demo",
-      "email": "normal-demo@cybergroup.local",
+      "username": "normal-test",
+      "email": "normal-test@cybergroup.local",
       "firstName": "Normal",
-      "lastName": "Demo",
+      "lastName": "Test",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
-        { "type": "password", "value": "NormalDemo123!Init", "temporary": false }
+        { "type": "password", "value": "IAMGroup123!", "temporary": false }
       ],
-      "realmRoles": ["normal"],
+      "realmRoles": ["default-roles-cybergroup", "normal"],
       "requiredActions": ["CONFIGURE_TOTP"]
     }
   ]

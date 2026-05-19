@@ -1,0 +1,10 @@
+# Secrets — never commit the populated env file.
+.env
+
+# Local tooling / IDE
+.claude/
+.idea/
+*.iml
+
+# Build output
+target/
