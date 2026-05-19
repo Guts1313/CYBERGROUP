@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CYBERGROUP — IAM Demo Console</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --line:#30363d; --txt:#c9d1d9;
+          --accent:#58a6ff; --ok:#3fb950; --bad:#f85149; --warn:#d29922; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--txt); }
+  header { background:linear-gradient(90deg,#1f6feb,#8957e5); padding:18px 28px; }
+  header h1 { margin:0; font-size:20px; color:#fff; letter-spacing:.3px; }
+  header p  { margin:4px 0 0; font-size:12px; color:#d6e4ff; }
+  main { max-width:1080px; margin:0 auto; padding:22px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px;
+           padding:18px 20px; margin-bottom:18px; }
+  .panel h2 { margin:0 0 12px; font-size:14px; color:var(--accent);
+              text-transform:uppercase; letter-spacing:.6px; }
+  .step { font-size:11px; color:var(--warn); font-weight:700; }
+  label { font-size:12px; display:block; margin-bottom:5px; color:#8b949e; }
+  select,button { font-size:13px; padding:8px 12px; border-radius:6px;
+                  border:1px solid var(--line); }
+  select { background:#0d1117; color:var(--txt); min-width:220px; }
+  button { background:var(--accent); color:#0d1117; font-weight:700; cursor:pointer;
+           border:none; margin-left:8px; }
+  button:first-of-type { margin-left:0; }
+  button:hover { filter:brightness(1.1); }
+  button.alt { background:#21262d; color:var(--txt); border:1px solid var(--line); }
+  pre { background:#0d1117; border:1px solid var(--line); border-radius:6px;
+        padding:12px; font-size:11.5px; overflow:auto; white-space:pre-wrap;
+        word-break:break-all; margin:8px 0 0; }
+  .jwt b { color:var(--bad); }   .jwt i { color:var(--accent); font-style:normal; }
+  .jwt s { color:var(--ok); text-decoration:none; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; font-size:12.5px; }
+  th,td { border:1px solid var(--line); padding:8px 10px; text-align:left; }
+  th { background:#0d1117; color:#8b949e; }
+  .badge { padding:2px 9px; border-radius:10px; font-weight:700; font-size:11px; }
+  .b200 { background:rgba(63,185,80,.15); color:var(--ok); border:1px solid var(--ok); }
+  .b403 { background:rgba(248,81,73,.15); color:var(--bad); border:1px solid var(--bad); }
+  .b401 { background:rgba(210,153,34,.15); color:var(--warn); border:1px solid var(--warn); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .muted { color:#8b949e; font-size:11.5px; }
+  .kv { font-size:12px; margin-top:10px; }  .kv span { color:var(--accent); }
+  code { color:var(--warn); }
+</style>
+</head>
+<body>
+<header>
+  <h1>CYBERGROUP &mdash; IAM Demo Console</h1>
+  <p>Keycloak 26 OIDC Identity Provider &nbsp;&bull;&nbsp; Spring Boot 3 OAuth2 Resource Server &nbsp;&bull;&nbsp; realm <code>cybergroup</code></p>
+</header>
+<main>
+
+  <div class="panel">
+    <h2><span class="step">STEP 1</span> &nbsp; Authenticate via Keycloak (Auth Code + PKCE + MFA)</h2>
+    <p class="muted">Clicking <em>Login</em> redirects you to Keycloak's own hosted login page. Sign in as
+      one of the realm users &mdash; <code>admin-test</code>, <code>itmgr-test</code>,
+      <code>hrmgr-test</code>, <code>dev-test</code>, <code>normal-test</code>, all with password
+      <code>IAMGroup123!</code> &mdash; complete the one-time TOTP step, and Keycloak redirects back
+      here with an authorization <em>code</em>. The browser then exchanges that code for a JWT.</p>
+    <p class="muted">Flow: OAuth2 <b>Authorization Code + PKCE</b> (S256 challenge), public client
+      <code>iam-frontend</code>, no client secret in the browser. This is the real production flow
+      &mdash; MFA is enforced because the login happens on Keycloak's page, not here.</p>
+    <button id="loginBtn" onclick="login()">Login with Keycloak &rarr;</button>
+    <button id="logoutBtn" class="alt" onclick="logout()" style="display:none">Logout</button>
+    <div id="tokenStatus" class="kv"></div>
+  </div>
+
+  <div class="panel" id="jwtPanel" style="display:none">
+    <h2><span class="step">STEP 2</span> &nbsp; The issued JSON Web Token</h2>
+    <div class="grid">
+      <div>
+        <label>Raw compact JWT &mdash; <span class="jwt"><b>header</b>.<i>payload</i>.<s>signature</s></span></label>
+        <pre id="rawJwt" class="jwt"></pre>
+      </div>
+      <div>
+        <label>Decoded header (signing algorithm &amp; key id)</label>
+        <pre id="jwtHeader"></pre>
+        <label style="margin-top:8px">Decoded payload (claims)</label>
+        <pre id="jwtPayload"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="rbacPanel" style="display:none">
+    <h2><span class="step">STEP 3</span> &nbsp; Resource-server RBAC enforcement</h2>
+    <p class="muted">The same bearer token is replayed against every protected endpoint of the
+      Spring Boot resource server (<code>:8081</code>). Authorization is enforced by
+      <code>@PreAuthorize</code> on the <code>realm_access.roles</code> claim.</p>
+    <button class="alt" onclick="runRbac()">Run RBAC checks for this identity</button>
+    <table id="rbacTable">
+      <thead><tr><th>Endpoint</th><th>Required role(s)</th><th>HTTP result</th><th>Verdict</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="negPanel" style="display:none">
+    <h2><span class="step">STEP 4</span> &nbsp; Negative security tests</h2>
+    <button class="alt" onclick="runNegative()">Run tamper / no-token tests</button>
+    <table id="negTable">
+      <thead><tr><th>Test case</th><th>Expectation</th><th>HTTP result</th><th>Verdict</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+</main>
+
+<script>
+// --- configuration -----------------------------------------------------------
+const KC       = "http://localhost:8080/realms/cybergroup";
+const API      = "http://localhost:8081";
+const CLIENT   = "iam-frontend";                              // public SPA client
+const REDIRECT = window.location.origin + window.location.pathname;  // http://localhost:5173/
+const APP_ROLES = ["admin","it_manager","hr_manager","developer","normal"];
+let accessToken = null, idToken = null, currentRole = null;
+
+// --- helpers -----------------------------------------------------------------
+function b64urlDecode(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); s+='='.repeat((4-s.length%4)%4);
+  return decodeURIComponent(atob(s).split('').map(c=>'%'+c.charCodeAt(0).toString(16).padStart(2,'0')).join('')); }
+
+// PKCE: a random secret (verifier) the browser keeps, plus its SHA-256 (challenge) sent to Keycloak.
+function randHex(n){ const a=new Uint8Array(n); crypto.getRandomValues(a);
+  return Array.from(a,b=>b.toString(16).padStart(2,'0')).join(''); }
+async function sha256url(str){
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return btoa(String.fromCharCode(...new Uint8Array(d)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+// --- STEP 1a: kick off the Authorization Code + PKCE flow --------------------
+async function login(){
+  const verifier = randHex(40);                 // the PKCE secret — stays in this browser
+  const state    = randHex(8);                  // CSRF guard for the round-trip
+  sessionStorage.setItem('pkce_verifier', verifier);
+  sessionStorage.setItem('oauth_state', state);
+  const challenge = await sha256url(verifier);  // SHA-256(verifier), base64url
+  const p = new URLSearchParams({
+    client_id: CLIENT, response_type: 'code', scope: 'openid',
+    redirect_uri: REDIRECT, state,
+    code_challenge: challenge, code_challenge_method: 'S256'
+  });
+  window.location.assign(KC + '/protocol/openid-connect/auth?' + p);
+}
+
+function logout(){
+  const p = new URLSearchParams({ post_logout_redirect_uri: REDIRECT });
+  if(idToken) p.set('id_token_hint', idToken);
+  sessionStorage.clear();
+  window.location.assign(KC + '/protocol/openid-connect/logout?' + p);
+}
+
+// --- STEP 1b: exchange the returned ?code= for a token -----------------------
+async function exchangeCode(code){
+  const verifier = sessionStorage.getItem('pkce_verifier');
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code', client_id: CLIENT,
+    code, redirect_uri: REDIRECT, code_verifier: verifier   // verifier proves it's the same browser
+  });
+  const r = await fetch(KC + '/protocol/openid-connect/token',
+            {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body});
+  return { ok:r.ok, status:r.status, json: await r.json() };
+}
+
+function showToken(j){
+  accessToken = j.access_token;
+  idToken     = j.id_token || null;
+  const payload = JSON.parse(b64urlDecode(accessToken.split('.')[1]));
+  const roles   = (payload.realm_access && payload.realm_access.roles) || [];
+  currentRole   = APP_ROLES.find(r => roles.includes(r)) || '(none)';
+
+  document.getElementById('loginBtn').style.display  = 'none';
+  document.getElementById('logoutBtn').style.display = 'inline-block';
+  document.getElementById('tokenStatus').innerHTML =
+    '<span style="color:var(--ok)">&#10003; Logged in as <span>'+(payload.preferred_username||'?')+
+    '</span></span> &nbsp; app role=<span>'+currentRole+'</span> &nbsp; '+
+    'token expires_in=<span>'+j.expires_in+'s</span>';
+
+  const [h,pl,sg] = accessToken.split('.');
+  document.getElementById('rawJwt').innerHTML = '<b>'+h+'</b>.<i>'+pl+'</i>.<s>'+sg+'</s>';
+  document.getElementById('jwtHeader').textContent  = JSON.stringify(JSON.parse(b64urlDecode(h)),null,2);
+  document.getElementById('jwtPayload').textContent = JSON.stringify(payload,null,2);
+  document.getElementById('jwtPanel').style.display='block';
+  document.getElementById('rbacPanel').style.display='block';
+  document.getElementById('negPanel').style.display='block';
+}
+
+// --- on page load: are we mid-callback, or a fresh visit? --------------------
+async function init(){
+  const q = new URLSearchParams(window.location.search);
+  if(q.has('error')){
+    document.getElementById('tokenStatus').innerHTML =
+      '<span style="color:var(--bad)">Login failed: '+q.get('error')+
+      ' &mdash; '+(q.get('error_description')||'')+'</span>';
+    window.history.replaceState({},'',REDIRECT);
+    return;
+  }
+  const code = q.get('code');
+  if(!code) return;                              // fresh visit — just show the Login button
+  if(q.get('state') !== sessionStorage.getItem('oauth_state')){
+    document.getElementById('tokenStatus').innerHTML =
+      '<span style="color:var(--bad)">State mismatch &mdash; possible CSRF, aborting.</span>';
+    window.history.replaceState({},'',REDIRECT);
+    return;
+  }
+  document.getElementById('tokenStatus').textContent = 'Exchanging authorization code for a token...';
+  const res = await exchangeCode(code);
+  window.history.replaceState({},'',REDIRECT);   // strip ?code= so a refresh doesn't re-exchange
+  if(!res.ok){
+    document.getElementById('tokenStatus').innerHTML =
+      '<span style="color:var(--bad)">Token exchange failed: '+(res.json.error||res.status)+'</span>';
+    return;
+  }
+  showToken(res.json);
+}
+
+// --- STEP 3: RBAC walkthrough -------------------------------------------------
+const ENDPOINTS = [
+  {path:'/api/private',       need:'any authenticated user'},
+  {path:'/api/private/admin', need:'admin'},
+  {path:'/api/private/it',    need:'it_manager, admin'},
+  {path:'/api/private/hr',    need:'hr_manager, admin'},
+  {path:'/api/private/dev',   need:'developer, it_manager, admin'},
+];
+
+function badge(code){ const c = code===200?'b200':code===401?'b401':'b403';
+  return '<span class="badge '+c+'">'+code+'</span>'; }
+
+async function runRbac(){
+  const tb = document.querySelector('#rbacTable tbody'); tb.innerHTML='';
+  for(const e of ENDPOINTS){
+    const r = await fetch(API+e.path,{headers:{'Authorization':'Bearer '+accessToken}});
+    const allowed = e.need.includes('any') || e.need.split(/,\s*/).includes(currentRole);
+    const ok = (allowed && r.status===200) || (!allowed && r.status===403);
+    tb.innerHTML += '<tr><td><code>'+e.path+'</code></td><td>'+e.need+'</td><td>'+
+      badge(r.status)+'</td><td>'+(ok?'&#10003; as designed':'&#10007; unexpected')+'</td></tr>';
+  }
+}
+
+// --- STEP 4: negative security tests -----------------------------------------
+async function runNegative(){
+  const tb = document.querySelector('#negTable tbody'); tb.innerHTML='';
+  const row=(n,exp,code,ok)=> tb.innerHTML+='<tr><td>'+n+'</td><td>'+exp+'</td><td>'+
+      badge(code)+'</td><td>'+(ok?'&#10003; rejected':'&#10007; LEAK')+'</td></tr>';
+  // no token
+  let r = await fetch(API+'/api/private'); row('Request with no Authorization header','401 Unauthorized',r.status,r.status===401);
+  // tampered signature
+  const parts = accessToken.split('.');
+  const bad = parts[0]+'.'+parts[1]+'.'+parts[2].slice(0,-4)+'AAAA';
+  r = await fetch(API+'/api/private',{headers:{'Authorization':'Bearer '+bad}});
+  row('Tampered signature (last 4 bytes flipped)','401 Unauthorized',r.status,r.status===401);
+  // garbage token
+  r = await fetch(API+'/api/private',{headers:{'Authorization':'Bearer not.a.jwt'}});
+  row('Garbage / malformed bearer token','401 Unauthorized',r.status,r.status===401);
+}
+
+init();
+</script>
+</body>
+</html>
