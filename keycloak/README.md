@@ -64,7 +64,7 @@ The `cybergroup` realm auto-imports on first boot from `realm-import/cybergroup-
 **Demo users (one per role):**
 | Username | Role | Initial password |
 |---|---|---|
-| `admin-demo`  | admin       | `AdminDemo123!Init` |
+| `admin-demo`  | admin       | `AdminDemo123!Init` | 
 | `itmgr-demo`  | it_manager  | `ITMgrDemo123!Init` |
 | `hrmgr-demo`  | hr_manager  | `HRMgrDemo123!Init` |
 | `dev-demo`    | developer   | `DevDemo123!Init` |
