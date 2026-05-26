@@ -1,3 +1,126 @@
+# Role / access matrix (W5 #27)
+
+Client-facing artefact showing what each of the five Keycloak realm roles can do, with five demo accounts to walk through. This document is the authoritative source for the role/access matrix — the K2 realm config and the W4 `@PreAuthorize` rules in `PrivateController` should match what's below.
+
+---
+
+## The five roles
+
+| Role | Realm role name | Intent |
+|---|---|---|
+| Admin | `admin` | Full administrative access — management consoles, SIEM, all endpoints |
+| IT Manager | `it_manager` | IT operations and infrastructure management |
+| HR Manager | `hr_manager` | HR systems access only |
+| Developer | `developer` | Repositories and internal APIs |
+| Normal worker | `normal` | Standard access — workstation and email only |
+
+---
+
+## Access matrix
+
+| Resource | admin | it_manager | hr_manager | developer | normal |
+|---|:---:|:---:|:---:|:---:|:---:|
+| `GET /api/public` (anonymous) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `GET /api/private` (any authenticated) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `GET /api/private/admin` | ✅ | ❌ | ❌ | ❌ | ❌ |
+| `GET /api/private/it` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| `GET /api/private/hr` | ✅ | ❌ | ✅ | ❌ | ❌ |
+| `GET /api/private/dev` | ✅ | ✅ | ❌ | ✅ | ❌ |
+
+---
+
+## Justifications
+
+**Admin** is a superset of all other roles. Every protected endpoint includes `admin` in its `@PreAuthorize` annotation, so this role functions as a break-glass account for administrators.
+
+**IT Manager** has access to `/api/private/dev` because IT operations regularly overlaps with developer needs such as CI/CD pipelines and infrastructure repositories. This can be revoked if it turns out to be too broad.
+
+**HR Manager** is intentionally narrow. Only HR-tagged resources are accessible. No access to developer or admin resources.
+
+**Developer** has access to `/api/private/dev` only. Cannot read HR data or admin resources.
+
+**Normal worker** can authenticate and reach the generic `/api/private` endpoint, but cannot access any role-scoped resource.
+
+---
+
+## How enforcement works
+
+| Layer | Where | What it does |
+|---|---|---|
+| Identity | `keycloak/realm-import/cybergroup-realm.json` (K2, PR #68) | Roles created and assigned to users |
+| Token | Keycloak JWT (`realm_access.roles` claim) | Set by Keycloak on every login |
+| Backend converter | `KeycloakRealmRoleConverter` (W3/W4) | Maps `realm_access.roles` → `ROLE_<role>` Spring authorities |
+| Endpoint | `PrivateController` `@PreAuthorize` annotations (W4, PR #69) | `hasRole` / `hasAnyRole` checked on every method call |
+| Tests | `PrivateControllerTest` | Positive and negative assertions per role per endpoint |
+
+---
+
+## Demo accounts
+
+> ⚠️ Initial passwords are for demo purposes only. Rotate before exposing the system to anyone outside the team.
+
+| Username | Role | Initial password | Email |
+|---|---|---|---|
+| `admin-demo` | admin | `AdminDemo123!Init` | admin-demo@cybergroup.local |
+| `itmgr-demo` | it_manager | `ITMgrDemo123!Init` | itmgr-demo@cybergroup.local |
+| `hrmgr-demo` | hr_manager | `HRMgrDemo123!Init` | hrmgr-demo@cybergroup.local |
+| `dev-demo` | developer | `DevDemo123!Init` | dev-demo@cybergroup.local |
+| `normal-demo` | normal | `NormalDemo123!Init` | normal-demo@cybergroup.local |
+
+---
+
+## End-to-end walkthrough (per role)
+
+Prerequisites: `cd keycloak && docker compose up -d` and `cd backend && mvn spring-boot:run`. Both must be running locally.
+
+### Step 1 — first-time TOTP enrolment (one-off per account)
+
+For each demo user:
+
+1. Browse to `http://localhost:8080/realms/cybergroup/account/`
+2. Sign in with the username and initial password from the table above
+3. Keycloak forces TOTP enrolment — scan the QR with any TOTP app (Google Authenticator, Authy, FreeOTP, Microsoft Authenticator)
+4. Enter the 6-digit code to confirm — the account is now MFA-enabled
+
+### Step 2 — verify access per role
+
+```bash
+# Replace USERNAME/PASSWORD/TOTP_CODE for each role
+TOKEN=$(curl -s -X POST \
+  http://localhost:8080/realms/cybergroup/protocol/openid-connect/token \
+  -d grant_type=password \
+  -d client_id=iam-frontend \
+  -d username=USERNAME \
+  -d password=PASSWORD \
+  -d totp=TOTP_CODE \
+  | jq -r .access_token)
+
+for path in /api/private /api/private/admin /api/private/it /api/private/hr /api/private/dev; do
+  status=$(curl -s -o /dev/null -w "%{http_code}" \
+    -H "Authorization: Bearer $TOKEN" \
+    "http://localhost:8081$path")
+  echo "$path -> $status"
+done
+```
+
+---
+
+## Expected HTTP responses per role
+
+| User | `/private` | `/admin` | `/it` | `/hr` | `/dev` |
+|---|:---:|:---:|:---:|:---:|:---:|
+| admin-demo | 200 | 200 | 200 | 200 | 200 |
+| itmgr-demo | 200 | 403 | 200 | 403 | 200 |
+| hrmgr-demo | 200 | 403 | 403 | 200 | 403 |
+| dev-demo | 200 | 403 | 403 | 403 | 200 |
+| normal-demo | 200 | 403 | 403 | 403 | 403 |
+
+> 401 = token missing or invalid. 403 = token valid but role not permitted.
+
+---
+
+## Role access diagram
+
 ```mermaid
 flowchart LR
     admin --> pub[api/public]
@@ -24,14 +147,25 @@ flowchart LR
     normal --> priv
 ```
 
+---
 
+## Known gaps / open items
 
+- This matrix covers only the demo backend endpoints. Real production resources such as HR systems and CI/CD tooling are out of scope for this sprint.
+- Client-facing non-technical overview is tracked separately in C2 #34.
+- E2E test coverage of this matrix is tracked in E3 #58.
 
+---
 
-# Role / access matrix (W5 #27)
+## Future scope (not in W5)
 
-Client-facing artefact showing what each of the five Keycloak realm roles can do, with five demo accounts to walk through. This document is the authoritative source for the role/access matrix — the K2 realm config and the W4 `@PreAuthorize` rules in `PrivateController` should match what's below.
+- The C2 #34 client-facing role overview presents the same matrix in non-technical language for the customer.
+- The frontend (F-block) renders per-role UI based on the same JWT claims (F3 #53).
+- E2E coverage of the matrix lives in E3 #58.
 
+---
+
+*Cross-referenced: K2 PR #68 · W4 PR #69 · Phase E PR #70 · C1 issue #33*
 ## The five roles
 
 | Role | Realm role name | Intent (per the network diagram) |
