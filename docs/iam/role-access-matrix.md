@@ -1,31 +1,29 @@
 ```mermaid
 flowchart LR
-    admin -->|✅| pub[/api/public]
-    admin -->|✅| priv[/api/private]
-    admin -->|✅| adm[/api/private/admin]
-    admin -->|✅| it[/api/private/it]
-    admin -->|✅| hr[/api/private/hr]
-    admin -->|✅| dev[/api/private/dev]
+    admin --> pub[api/public]
+    admin --> priv[api/private]
+    admin --> adm[api/private/admin]
+    admin --> it_ep[api/private/it]
+    admin --> hr_ep[api/private/hr]
+    admin --> dev_ep[api/private/dev]
 
-    it_manager -->|✅| pub
-    it_manager -->|✅| priv
-    it_manager -->|✅| it
-    it_manager -->|✅| dev
+    it_manager --> pub
+    it_manager --> priv
+    it_manager --> it_ep
+    it_manager --> dev_ep
 
-    hr_manager -->|✅| pub
-    hr_manager -->|✅| priv
-    hr_manager -->|✅| hr
+    hr_manager --> pub
+    hr_manager --> priv
+    hr_manager --> hr_ep
 
-    developer -->|✅| pub
-    developer -->|✅| priv
-    developer -->|✅| dev
+    developer --> pub
+    developer --> priv
+    developer --> dev_ep
 
-    normal -->|✅| pub
-    normal -->|✅| priv
+    normal --> pub
+    normal --> priv
 ` ``
 ```
-
-Dit plak je gewoon ergens in de markdown, bijvoorbeeld onder de access matrix tabel. GitHub rendert het automatisch als diagram.
 
 
 
