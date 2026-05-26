@@ -119,36 +119,6 @@ done
 
 ---
 
-## Role access diagram
-
-```mermaid
-flowchart LR
-    admin --> pub[api/public]
-    admin --> priv[api/private]
-    admin --> adm[api/private/admin]
-    admin --> it_ep[api/private/it]
-    admin --> hr_ep[api/private/hr]
-    admin --> dev_ep[api/private/dev]
-
-    it_manager --> pub
-    it_manager --> priv
-    it_manager --> it_ep
-    it_manager --> dev_ep
-
-    hr_manager --> pub
-    hr_manager --> priv
-    hr_manager --> hr_ep
-
-    developer --> pub
-    developer --> priv
-    developer --> dev_ep
-
-    normal --> pub
-    normal --> priv
-```
-
----
-
 ## Known gaps / open items
 
 - This matrix covers only the demo backend endpoints. Real production resources such as HR systems and CI/CD tooling are out of scope for this sprint.
