@@ -1,3 +1,36 @@
+```mermaid
+flowchart LR
+    admin -->|✅| pub[/api/public]
+    admin -->|✅| priv[/api/private]
+    admin -->|✅| adm[/api/private/admin]
+    admin -->|✅| it[/api/private/it]
+    admin -->|✅| hr[/api/private/hr]
+    admin -->|✅| dev[/api/private/dev]
+
+    it_manager -->|✅| pub
+    it_manager -->|✅| priv
+    it_manager -->|✅| it
+    it_manager -->|✅| dev
+
+    hr_manager -->|✅| pub
+    hr_manager -->|✅| priv
+    hr_manager -->|✅| hr
+
+    developer -->|✅| pub
+    developer -->|✅| priv
+    developer -->|✅| dev
+
+    normal -->|✅| pub
+    normal -->|✅| priv
+` ``
+```
+
+Dit plak je gewoon ergens in de markdown, bijvoorbeeld onder de access matrix tabel. GitHub rendert het automatisch als diagram.
+
+
+
+
+
 # Role / access matrix (W5 #27)
 
 Client-facing artefact showing what each of the five Keycloak realm roles can do, with five demo accounts to walk through. This document is the authoritative source for the role/access matrix — the K2 realm config and the W4 `@PreAuthorize` rules in `PrivateController` should match what's below.
