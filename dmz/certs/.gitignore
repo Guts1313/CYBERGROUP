@@ -1,0 +1,3 @@
+# Never commit the self-signed dev key/cert.
+edge.key
+edge.crt

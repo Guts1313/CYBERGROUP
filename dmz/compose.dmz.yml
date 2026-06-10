@@ -1,0 +1,42 @@
+# =============================================================================
+# DMZ edge — adds the NGINX reverse proxy IN FRONT of the existing stack.
+# Additive only: this file does NOT redefine keycloak / backend / postgres /
+# console, so the working Keycloak stack is never touched.
+#
+# Run from the repo root:
+#   docker compose -f compose.yml -f dmz/compose.dmz.yml up -d nginx-edge
+#
+# If host ports 80/443 are busy, change the LEFT side (e.g. "8443:443").
+# =============================================================================
+services:
+  nginx-edge:
+    image: nginx:1.27-alpine
+    container_name: nginx-edge
+    restart: unless-stopped
+    depends_on: [keycloak, backend, console]
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./dmz/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./dmz/certs:/etc/nginx/certs:ro
+    networks: [iam-internal]
+
+  # --- Keycloak proxy-awareness (needed ONLY because it now sits behind nginx) ---
+  # Trust nginx's X-Forwarded-* headers so Keycloak builds https://<edge> URLs
+  # instead of http://localhost:8080. Without this, Keycloak's account/admin SPAs
+  # throw "somethingWentWrong" (mixed content) when reached THROUGH the proxy.
+  # The SAME setting is required on the NetLab Keycloak once nginx fronts it.
+  # Additive + reversible — it does NOT touch the realm / users / clients, and
+  # direct http://localhost:8080 access keeps working unchanged.
+  keycloak:
+    environment:
+      KC_PROXY_HEADERS: xforwarded
+
+  # --- Backend trusts the front-door issuer when reached through the edge ---------
+  # Through nginx the JWT 'iss' becomes https://localhost/... so the backend must
+  # expect that; JWKS is still fetched internally over the docker network. The base
+  # compose.yml keeps http://localhost:8080 for direct (no-proxy) mode.
+  backend:
+    environment:
+      KEYCLOAK_ISSUER_URI: https://localhost/realms/cybergroup
