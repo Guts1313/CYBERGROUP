@@ -2,6 +2,9 @@
 # CYBERGROUP - deploy the DMZ nginx edge on n2-test-dmz.
 # Run as:  sudo bash dmz/lab-deploy.sh
 # Re-IPs eth0 -> 10.0.10.10, makes a self-signed cert, runs nginx (Keycloak-only proxy).
+
+# auto-elevate so 'bash dmz/lab-deploy.sh' works even without sudo
+if [ "$(id -u)" -ne 0 ]; then echo "(elevating with sudo...)"; exec sudo bash "$0" "$@"; fi
 set -u
 DIR="$(cd "$(dirname "$0")" && pwd)"   # .../dmz
 

@@ -4,6 +4,9 @@
 # Refreshes the Kali signing key, switches to the CDN mirror, installs Docker,
 # and prints the network config for the re-IP step.
 
+# auto-elevate so 'bash dmz/lab-setup.sh' works even without sudo
+if [ "$(id -u)" -ne 0 ]; then echo "(elevating with sudo...)"; exec sudo bash "$0" "$@"; fi
+
 echo "=== [1/5] fix sudo hostname warning ==="
 HN="$(hostname)"
 grep -q " ${HN}\$" /etc/hosts || echo "127.0.1.1 ${HN}" >> /etc/hosts
