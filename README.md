@@ -11,7 +11,7 @@ Group J / Fontys S7 proof-of-concept for centralised identity & access managemen
 | **N — Network** (pfSense, VLANs, ACLs) | CurlyRed | N1 + N2 + N3 deployed; D1 next | [`docs/n1-perimeter-firewall.md`](docs/n1-perimeter-firewall.md), [`docs/n2-internal-firewall.md`](docs/n2-internal-firewall.md), [`network/ip-plan.md`](network/ip-plan.md), [`network/inter-vlan-acl.md`](network/inter-vlan-acl.md), [`network/netlab-interfaces.md`](network/netlab-interfaces.md) |
 | **K — Keycloak / IAM core** | Guts1313 | Phase A + B + C merged (realm, roles, MFA, clients, JWT) | [`keycloak/`](keycloak/), [`docs/iam/role-access-matrix.md`](docs/iam/role-access-matrix.md), [`docs/ops/keycloak-upgrade.md`](docs/ops/keycloak-upgrade.md) |
 | **W — Web app / RBAC** | Guts1313 | W1–W5 merged | [`backend/`](backend/), [`docs/iam/role-access-matrix.md`](docs/iam/role-access-matrix.md) |
-| **D — DMZ (NGINX + WAF)** | CurlyRed | drafts ready (D1/D2/D3) | [`dmz/`](dmz/) (unmerged drafts) |
+| **D — DMZ (NGINX + WAF)** | CurlyRed | D1+D3 implemented (reverse proxy + TLS + hardening); D2 (WAF) next | [`dmz/`](dmz/) |
 | **M — Monitoring + alerts** | shared | drafts ready (M2/M3); M1/M4 merged | [`monitoring/`](monitoring/) (unmerged drafts), [`docs/testing/role-rbac-test-report.md`](docs/testing/role-rbac-test-report.md) |
 | **Security — red-team prep** | shared | drafts ready (#5/#31) | [`docs/security/`](docs/security/) (unmerged drafts) |
 
@@ -35,7 +35,7 @@ Next sync points: **K1** (Keycloak migration to `10.0.20.10` on PVlanA) and **D1
 backend/          Spring Boot app (W1–W4), OAuth2 resource server, role-based authz
 keycloak/         Keycloak compose + realm import + ops scripts
 network/          IP plan + inter-VLAN ACLs (live design — N2/N3 still ahead)
-dmz/              NGINX + ModSecurity drafts (D1/D2/D3 — unmerged)
+dmz/              NGINX reverse proxy + TLS + D3 hardening (D1/D3); ModSecurity WAF (D2) next
 monitoring/       Loki/Grafana/Promtail/Prometheus drafts (M2/M3/O3 — unmerged)
 docs/             Plan, runbooks, role-access matrix, test reports, security
 pfsense-baseline.xml   Sanitised firewall config dump (N1 + N2 — 6 interfaces, 17 aliases, ~64 rules)

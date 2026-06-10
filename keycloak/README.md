@@ -64,11 +64,11 @@ The `cybergroup` realm auto-imports on first boot from `realm-import/cybergroup-
 **Demo users (one per role):**
 | Username | Role | Initial password |
 |---|---|---|
-| `admin-demo`  | admin       | `AdminDemo123!Init` | 
-| `itmgr-demo`  | it_manager  | `ITMgrDemo123!Init` |
-| `hrmgr-demo`  | hr_manager  | `HRMgrDemo123!Init` |
-| `dev-demo`    | developer   | `DevDemo123!Init` |
-| `normal-demo` | normal      | `NormalDemo123!Init` |
+| `admin-test`  | admin       | `IAMGroup123!` |
+| `itmgr-test`  | it_manager  | `IAMGroup123!` |
+| `hrmgr-test`  | hr_manager  | `IAMGroup123!` |
+| `dev-test`    | developer   | `IAMGroup123!` |
+| `normal-test` | normal      | `IAMGroup123!` |
 
 **⚠ Initial passwords are documentation-only — change them or rotate via Keycloak admin before exposing the demo. All demo users must enrol TOTP on first login.**
 
