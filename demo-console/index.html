@@ -109,10 +109,14 @@
 
 <script>
 // --- configuration -----------------------------------------------------------
-const KC       = "http://localhost:8080/realms/cybergroup";
-const API      = "http://localhost:8081";
+// Same-origin through the nginx edge (HTTPS) -> relative paths; direct dev mode
+// (console on :5173 over HTTP) -> talk to Keycloak/backend on their own ports.
+// REDIRECT already derives from the current origin, so it adapts to either.
+const viaProxy = location.protocol === "https:";
+const KC       = viaProxy ? "/realms/cybergroup" : `http://${location.hostname}:8080/realms/cybergroup`;
+const API      = viaProxy ? ""                   : `http://${location.hostname}:8081`;
 const CLIENT   = "iam-frontend";                              // public SPA client
-const REDIRECT = window.location.origin + window.location.pathname;  // http://localhost:5173/
+const REDIRECT = window.location.origin + window.location.pathname;  // localhost:5173/ or https://localhost/
 const APP_ROLES = ["admin","it_manager","hr_manager","developer","normal"];
 let accessToken = null, idToken = null, currentRole = null;
 

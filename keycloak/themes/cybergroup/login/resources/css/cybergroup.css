@@ -1,0 +1,75 @@
+/* =====================================================================
+   CYBERGROUP login theme — matches the IAM Demo Console palette
+   (#0d1117 bg, #161b22 panels, #58a6ff accent, blue->purple brand bar).
+   Targets both the classic (Bootstrap) and PatternFly selectors so it
+   styles the login, OTP, and TOTP-setup pages consistently.
+   ===================================================================== */
+:root{
+  --cg-bg:#0d1117; --cg-panel:#161b22; --cg-line:#30363d;
+  --cg-txt:#c9d1d9; --cg-accent:#58a6ff; --cg-muted:#8b949e;
+}
+
+html, body, body.login-pf, .login-pf body, .login-pf-page{
+  background:var(--cg-bg) !important;
+}
+body{
+  color:var(--cg-txt);
+  font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif !important;
+}
+
+.login-pf-page{ padding-top:48px; }
+
+/* ---- brand bar (renders realm displayNameHtml) ---- */
+#kc-header-wrapper{
+  background:linear-gradient(90deg,#1f6feb,#8957e5);
+  color:#fff !important; font-size:20px; font-weight:700; letter-spacing:.4px;
+  padding:16px; border-radius:8px; line-height:1.25; text-transform:none;
+  max-width:430px; margin:0 auto 16px;
+}
+
+/* ---- the login card ---- */
+.login-pf-page .card-pf{
+  background:var(--cg-panel) !important;
+  border:1px solid var(--cg-line); border-top:3px solid var(--cg-accent);
+  border-radius:8px; box-shadow:0 10px 34px rgba(0,0,0,.55);
+  color:var(--cg-txt); max-width:430px; margin:0 auto; padding:26px 28px;
+}
+
+/* ---- card heading ("Sign in to your account", etc.) ---- */
+#kc-page-title, .pf-c-title, .login-pf-page .card-pf h1{
+  color:var(--cg-txt) !important; font-size:16px; font-weight:600;
+}
+
+/* ---- labels + inputs ---- */
+label, .pf-c-form__label, .control-label{ color:var(--cg-muted) !important; font-size:12px; }
+input[type=text], input[type=password], input[type=email],
+input#username, input#password, .pf-c-form-control, .form-control{
+  background:#0d1117 !important; color:var(--cg-txt) !important;
+  border:1px solid var(--cg-line) !important; border-radius:6px !important;
+  box-shadow:none !important;
+}
+input#username:focus, input#password:focus, .form-control:focus, .pf-c-form-control:focus{
+  border-color:var(--cg-accent) !important;
+  box-shadow:0 0 0 2px rgba(88,166,255,.25) !important;
+}
+
+/* ---- primary button ---- */
+input[type=submit], button[type=submit], #kc-login,
+.btn-primary, .pf-c-button.pf-m-primary{
+  background:var(--cg-accent) !important; border:1px solid var(--cg-accent) !important;
+  color:#0d1117 !important; font-weight:700 !important; border-radius:6px !important;
+}
+input[type=submit]:hover, #kc-login:hover,
+.btn-primary:hover, .pf-c-button.pf-m-primary:hover{ filter:brightness(1.1); }
+
+/* ---- links + secondary text ---- */
+a, #kc-info a, #kc-registration a, .pf-c-button.pf-m-link{ color:var(--cg-accent) !important; }
+#kc-form-options, .checkbox, #kc-info, .pf-c-login__main-footer, .instruction{ color:var(--cg-muted); }
+
+/* ---- alerts ---- */
+.alert-error, .pf-c-alert.pf-m-danger, .pf-m-error{
+  background:rgba(248,81,73,.12) !important; border:1px solid #f85149 !important; color:#f85149 !important;
+}
+.alert-success, .pf-c-alert.pf-m-success{
+  background:rgba(63,185,80,.12) !important; border:1px solid #3fb950 !important; color:#3fb950 !important;
+}
