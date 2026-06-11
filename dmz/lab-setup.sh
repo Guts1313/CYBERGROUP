@@ -16,7 +16,7 @@ echo "=== [2/5] refresh Kali keyring + set CDN mirror (fixes NO_PUBKEY + 404s) =
 wget -q https://archive.kali.org/archive-keyring.gpg -O /usr/share/keyrings/kali-archive-keyring.gpg \
   && echo "keyring ok" || echo "keyring download FAILED (check egress 443)"
 cp -n /etc/apt/sources.list /etc/apt/sources.list.bak 2>/dev/null || true
-echo "deb [signed-by=/usr/share/keyrings/kali-archive-keyring.gpg] http://kali.download/kali kali-rolling main contrib non-free non-free-firmware" > /etc/apt/sources.list
+echo "deb [signed-by=/usr/share/keyrings/kali-archive-keyring.gpg] https://kali.download/kali kali-rolling main contrib non-free non-free-firmware" > /etc/apt/sources.list
 cat /etc/apt/sources.list
 
 echo "=== [3/5] apt update + install docker.io ==="
