@@ -16,7 +16,8 @@ kc() { docker exec keycloak /opt/keycloak/bin/kcadm.sh "$@"; }
 echo "=== authenticate ==="
 kc config credentials --server http://localhost:8080 --realm master --user "$ADMIN" --password "$PASS"
 
-echo "=== set realm Frontend URL -> $FD ==="
+echo "=== set Frontend URL -> $FD (master admin console + cybergroup) ==="
+kc update realms/master    -s "attributes.frontendUrl=$FD"
 kc update realms/cybergroup -s "attributes.frontendUrl=$FD"
 
 echo "=== point iam-frontend client at the front door ==="
