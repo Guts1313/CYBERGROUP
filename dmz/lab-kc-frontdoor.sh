@@ -16,14 +16,14 @@ kc() { docker exec keycloak /opt/keycloak/bin/kcadm.sh "$@"; }
 echo "=== authenticate ==="
 kc config credentials --server http://localhost:8080 --realm master --user "$ADMIN" --password "$PASS"
 
-echo "=== set Frontend URL -> $FD (master admin console + cybergroup) ==="
-kc update realms/master    -s "attributes.frontendUrl=$FD"
+echo "=== set realm Frontend URL -> $FD ==="
 kc update realms/cybergroup -s "attributes.frontendUrl=$FD"
 
 echo "=== point iam-frontend client at the front door ==="
 CID="$(kc get clients -r cybergroup -q clientId=iam-frontend --fields id --format csv --noquotes | tr -d '\r ')"
 kc update "clients/$CID" -r cybergroup \
   -s 'redirectUris=["http://localhost:5173/*","https://localhost/*","https://192.168.189.16/*"]' \
-  -s 'webOrigins=["http://localhost:5173","https://localhost","https://192.168.189.16"]'
+  -s 'webOrigins=["http://localhost:5173","https://localhost","https://192.168.189.16"]' \
+  -s 'attributes={"pkce.code.challenge.method":"S256","post.logout.redirect.uris":"+"}'
 
 echo "DONE. Hard-refresh https://192.168.189.16/ (demo console) and /admin/ - the 10.0.20.102 errors should be gone."
