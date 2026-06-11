@@ -32,6 +32,8 @@ services:
   keycloak:
     environment:
       KC_PROXY_HEADERS: xforwarded
+    volumes:
+      - ./keycloak/themes:/opt/keycloak/themes:ro
 
   # --- Backend trusts the front-door issuer when reached through the edge ---------
   # Through nginx the JWT 'iss' becomes https://localhost/... so the backend must
