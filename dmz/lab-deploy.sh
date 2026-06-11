@@ -7,6 +7,7 @@
 if [ "$(id -u)" -ne 0 ]; then echo "(elevating with sudo...)"; exec sudo bash "$0" "$@"; fi
 set -u
 DIR="$(cd "$(dirname "$0")" && pwd)"   # .../dmz
+ROOT="$(cd "$DIR/.." && pwd)"          # repo root (for the demo-console mount)
 
 if ! docker --version >/dev/null 2>&1; then
   echo "Docker not installed - run 'sudo bash dmz/lab-setup.sh' first."; exit 1
@@ -33,6 +34,7 @@ docker run -d --name nginx-edge --restart unless-stopped \
   -p 443:443 -p 80:80 \
   -v "$DIR/nginx.lab.conf:/etc/nginx/nginx.conf:ro" \
   -v "$DIR/certs:/etc/nginx/certs:ro" \
+  -v "$ROOT/demo-console:/usr/share/nginx/html:ro" \
   nginx:1.27-alpine
 sleep 3
 
