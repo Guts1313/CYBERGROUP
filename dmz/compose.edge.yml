@@ -1,0 +1,17 @@
+# DMZ nginx edge — run on the nginx VM (n2-test-dmz, 10.0.10.10):
+#   cd ~/CYBERGROUP/dmz && docker compose -f compose.edge.yml up -d
+# One-time box prep (static eth0 10.0.10.10 + self-signed cert in ./certs) is done by
+# dmz/lab-deploy.sh; after that this file alone (re)creates the container.
+name: cybergroup-edge
+services:
+  nginx-edge:
+    image: nginx:1.27-alpine
+    container_name: nginx-edge
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx.lab.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ../demo-console:/usr/share/nginx/html:ro

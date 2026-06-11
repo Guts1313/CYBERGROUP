@@ -1,0 +1,17 @@
+# Services-VLAN backend — run on the backend VM (n2-test-svc, 10.0.30.10):
+#   cd ~/CYBERGROUP/dmz && docker compose -f compose.backend.yml up -d
+# Builds the image from ../backend if it isn't present, then (re)creates the container.
+name: cybergroup-svc
+services:
+  iam-backend:
+    build: ../backend
+    image: cybergroup/iam-backend:0.1.0
+    container_name: iam-backend
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      # tokens arrive via the front door, so the expected issuer is the public host;
+      # the signing keys are fetched from Keycloak directly across the IdP boundary.
+      KEYCLOAK_ISSUER_URI: https://192.168.189.16/realms/cybergroup
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://10.0.20.10:8080/realms/cybergroup/protocol/openid-connect/certs
