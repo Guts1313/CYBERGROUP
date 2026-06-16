@@ -105,6 +105,33 @@
     </table>
   </div>
 
+  <div class="panel" id="adminPanel" style="display:none">
+    <h2><span class="step" style="color:var(--accent)">ADMIN</span> &nbsp; Active sessions &mdash; who is logged in now</h2>
+    <p class="muted">Live evidence that the IdP is working: the currently-active Keycloak sessions for
+      realm <code>cybergroup</code>, read from Keycloak's Admin API through the backend. This panel is
+      visible only to the <code>admin</code> role.</p>
+    <button class="alt" onclick="loadSessions()">Refresh</button>
+    <span id="sessCount" class="muted" style="margin-left:10px"></span>
+    <table id="sessTable">
+      <thead><tr><th>User</th><th>IP address</th><th>Logged in</th><th>Last activity</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="eventsPanel" style="display:none">
+    <h2><span class="step" style="color:var(--accent)">ADMIN</span> &nbsp; Login events &mdash; authentication audit trail</h2>
+    <p class="muted">The persistent audit log Keycloak keeps for realm <code>cybergroup</code> (30-day
+      retention): every login, logout, and <b>failed attempt</b>, with timestamp, user and source IP.
+      This is the historical record behind the live session view above. Visible only to the
+      <code>admin</code> role.</p>
+    <button class="alt" onclick="loadEvents()">Refresh</button>
+    <span id="evCount" class="muted" style="margin-left:10px"></span>
+    <table id="evTable">
+      <thead><tr><th>Time</th><th>Event</th><th>User</th><th>IP address</th><th>Client</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
 </main>
 
 <script>
@@ -188,6 +215,12 @@ function showToken(j){
   document.getElementById('jwtPanel').style.display='block';
   document.getElementById('rbacPanel').style.display='block';
   document.getElementById('negPanel').style.display='block';
+  if(currentRole === 'admin'){                       // admin-only dashboard panels
+    document.getElementById('adminPanel').style.display='block';
+    document.getElementById('eventsPanel').style.display='block';
+    loadSessions();
+    loadEvents();
+  }
 }
 
 // --- on page load: are we mid-callback, or a fresh visit? --------------------
@@ -257,6 +290,54 @@ async function runNegative(){
   // garbage token
   r = await fetch(API+'/api/private',{headers:{'Authorization':'Bearer not.a.jwt'}});
   row('Garbage / malformed bearer token','401 Unauthorized',r.status,r.status===401);
+}
+
+// --- ADMIN: live active-session dashboard (admin role only) ------------------
+// Relays the admin's token to the backend, which reads Keycloak's active sessions.
+async function loadSessions(){
+  const tb = document.querySelector('#sessTable tbody'); tb.innerHTML='';
+  const cnt = document.getElementById('sessCount'); cnt.textContent = 'loading...';
+  let r;
+  try { r = await fetch(API+'/api/admin/sessions',{headers:{'Authorization':'Bearer '+accessToken}}); }
+  catch(e){ cnt.innerHTML = '<span style="color:var(--bad)">request failed</span>'; return; }
+  if(!r.ok){
+    cnt.innerHTML = '<span style="color:var(--bad)">'+r.status+' &mdash; could not read sessions</span>';
+    return;
+  }
+  const rows = await r.json();
+  cnt.innerHTML = '<span style="color:var(--ok)">&#10003; '+rows.length+
+    ' active session'+(rows.length===1?'':'s')+'</span>';
+  const fmt = ms => ms ? new Date(Number(ms)).toLocaleString() : '&mdash;';
+  for(const s of rows){
+    tb.innerHTML += '<tr><td><span style="color:var(--accent)">'+(s.username||'?')+
+      '</span></td><td>'+(s.ipAddress||'&mdash;')+'</td><td>'+fmt(s.start)+
+      '</td><td>'+fmt(s.lastAccess)+'</td></tr>';
+  }
+}
+
+// --- ADMIN: login events / audit trail (admin role only) ---------------------
+// The persistent history of every login, logout and failed attempt from Keycloak.
+async function loadEvents(){
+  const tb = document.querySelector('#evTable tbody'); tb.innerHTML='';
+  const cnt = document.getElementById('evCount'); cnt.textContent = 'loading...';
+  let r;
+  try { r = await fetch(API+'/api/admin/events',{headers:{'Authorization':'Bearer '+accessToken}}); }
+  catch(e){ cnt.innerHTML = '<span style="color:var(--bad)">request failed</span>'; return; }
+  if(!r.ok){
+    cnt.innerHTML = '<span style="color:var(--bad)">'+r.status+' &mdash; could not read events</span>';
+    return;
+  }
+  const rows = await r.json();
+  cnt.innerHTML = '<span style="color:var(--ok)">&#10003; '+rows.length+' event'+(rows.length===1?'':'s')+'</span>';
+  const fmt = ms => ms ? new Date(Number(ms)).toLocaleString() : '&mdash;';
+  const evColor = t => t==='LOGIN' ? 'var(--ok)' : (t && t.indexOf('ERROR')>=0) ? 'var(--bad)' : 'var(--warn)';
+  for(const e of rows){
+    const label = e.type + (e.error ? ' ('+e.error+')' : '');
+    tb.innerHTML += '<tr><td>'+fmt(e.time)+'</td><td><span style="color:'+evColor(e.type)+
+      ';font-weight:700">'+label+'</span></td><td><span style="color:var(--accent)">'+
+      (e.username||'&mdash;')+'</span></td><td>'+(e.ipAddress||'&mdash;')+'</td><td>'+
+      (e.clientId||'&mdash;')+'</td></tr>';
+  }
 }
 
 init();

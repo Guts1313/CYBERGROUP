@@ -71,6 +71,9 @@ services:
       # signing keys (JWKS) over the internal docker network instead. Setting jwk-set-uri
       # explicitly decouples key retrieval from issuer-claim validation.
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/cybergroup/protocol/openid-connect/certs
+      # Admin dashboard ("Active sessions") -> Keycloak Admin REST API over the
+      # internal docker network (the backend relays the calling admin's own token).
+      KEYCLOAK_BASE_URL: http://keycloak:8080
     ports:
       - "8081:8081"
     depends_on:

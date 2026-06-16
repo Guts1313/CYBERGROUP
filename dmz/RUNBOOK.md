@@ -56,6 +56,38 @@ bash dmz/lab-kc-frontdoor.sh   # Frontend URL + redirect URIs + post-logout
 bash dmz/lab-kc-theme.sh       # mount theme + loginTheme=cybergroup
 ```
 
+## Admin dashboard — active sessions + login events (audit evidence)
+
+Two **admin-only panels** in the demo console: **Active sessions** (who is logged in right
+now — live state) and **Login events** (the persistent audit trail — every login, logout and
+failed attempt). The backend endpoints `GET /api/admin/sessions` and `GET /api/admin/events`
+(admin role only) **relay the admin's own token** to Keycloak's Admin REST API; no service
+account or client secret is stored.
+
+**Quickest — one identical command per VM** (auto-detects the VM, runs only its step):
+```bash
+cd ~/CYBERGROUP && git pull && bash dmz/deploy.sh
+```
+
+Or run each VM's step manually:
+
+1. **Keycloak** (`cybergroup-backend`) — grant the `admin` role read access to sessions.
+   One-time; stored in Postgres, so it survives restarts (re-run only after a volume wipe):
+   ```bash
+   bash dmz/lab-kc-admin-roles.sh   # grants view-users + view-clients + view-events to 'admin'
+   ```
+2. **Backend** (`n2-test-svc`) — rebuild so it picks up the new endpoint + `KEYCLOAK_BASE_URL`:
+   ```bash
+   cd ~/CYBERGROUP/dmz && docker compose -f compose.backend.yml up -d --build
+   ```
+3. **Console** (`n2-test-dmz`) — refresh the static console so nginx serves the new panel:
+   ```bash
+   cd ~/CYBERGROUP && git pull   # updates demo-console/index.html (served read-only by nginx)
+   ```
+
+Then **log in as `admin-test`** (re-login if already signed in, so the new roles are in the
+token) → the "Active sessions" and "Login events" panels populate for the admin.
+
 ## What this branch deployed (summary of changes)
 
 - **D1 / D3** — nginx reverse proxy + TLS termination + D3 hardening (`dmz/nginx.lab.conf`)

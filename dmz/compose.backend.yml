@@ -15,3 +15,6 @@ services:
       # the signing keys are fetched from Keycloak directly across the IdP boundary.
       KEYCLOAK_ISSUER_URI: https://192.168.189.16/realms/cybergroup
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://10.0.20.10:8080/realms/cybergroup/protocol/openid-connect/certs
+      # Admin dashboard ("Active sessions") -> Keycloak Admin REST API, reached
+      # directly across the IdP boundary (the backend relays the admin's own token).
+      KEYCLOAK_BASE_URL: http://10.0.20.10:8080
